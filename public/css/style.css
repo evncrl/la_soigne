@@ -1,0 +1,41 @@
+      .image-preview-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .image-preview {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        position: relative;
+      }
+      .remove-image {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #ff4444;
+        color: white;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .search-container {
+        margin: 20px 0;
+      }
+      .action-buttons .btn {
+        margin-right: 5px;
+      }
+      #itemModal .modal-dialog {
+        max-width: 800px;
+      }
+      .table-responsive {
+        min-height: 300px;
+      }
