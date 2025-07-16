@@ -1,24 +1,31 @@
-
 const express = require('express');
-const app = express();
-const cors = require('cors')
-const path = require('path')
+const cors = require('cors');
+const path = require('path');
+require('dotenv').config();
 
-const items = require('./routes/item');
-const categories = require('./routes/category');
-const users = require('./routes/user')
-// const dashboard = require('./routes/dashboard')
-// const order = require('./routes/order')
-app.use(cors())
-app.use(express.json())
-app.use('/images', express.static(path.join(__dirname, 'public/images')))
+const productRoutes = require('./routes/product');
+const userRoutes = require('./routes/user'); // ✅ Added
+
+const app = express();
+
+// ✅ Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// ✅ Serve uploaded images publicly
+app.use('/images', express.static(path.join(__dirname, 'public/images')));
+
+// ✅ Serve static HTML/CSS/JS files from public folder
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ✅ API Routes
+app.use('/api/v1', productRoutes);
+app.use('/api/v1', userRoutes); // ✅ Added
 
-app.use('/api/v1', items);
-app.use('/api/v1', categories);
-app.use('/api/v1', users);
+// ✅ Default Route (Optional)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'create.html'));
+});
 
-// app.use('/api/v1', dashboard);
-// app.use('/api/v1', order);
-module.exports = app
+module.exports = app;

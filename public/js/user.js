@@ -39,7 +39,7 @@ $(document).ready(function () {
                 $('body').css('padding-top', $('#header').outerHeight() + 20 + 'px');
                 $('#login-link, #register-link').addClass('d-none');
                 $('#user-dropdown').removeClass('d-none');
-                
+
                 // Fetch user data for header
                 $.ajax({
                     url: `${url}api/users/customers/${authData.userId}`,
@@ -51,6 +51,12 @@ $(document).ready(function () {
                             $('#username').text(fullName || 'USER');
                             if (data.image_path) {
                                 $('.profile-img').attr('src', `/${data.image_path}`);
+                            }
+
+                            // ✅ ADMIN CHECK
+                            if (data.role === 'Admin') {
+                                $('body').addClass('is-admin');
+                                console.log("✅ Admin logged in");
                             }
                         }
                     },
@@ -102,15 +108,14 @@ $(document).ready(function () {
             // Handle form submission
             $('#profileForm').on('submit', function (e) {
                 e.preventDefault();
-                
+
                 const formData = new FormData(this);
-                
+
                 // Ensure userId is set
                 if (!formData.get('userId')) {
                     formData.set('userId', userId);
                 }
 
-                // Debug: Log form data
                 console.log('Form data being sent:');
                 for (let pair of formData.entries()) {
                     console.log(pair[0] + ': ' + pair[1]);
@@ -131,18 +136,16 @@ $(document).ready(function () {
                             timer: 2000,
                             timerProgressBar: true
                         });
-                        
-                        // Refresh profile data
                         fetchProfileData();
                     },
                     error: function (xhr) {
                         console.error('Error:', xhr);
                         let errorMsg = 'Profile update failed';
-                        
+
                         if (xhr.responseJSON && xhr.responseJSON.error) {
                             errorMsg = xhr.responseJSON.error;
                         }
-                        
+
                         Swal.fire({
                             icon: 'error',
                             text: errorMsg,
@@ -159,7 +162,7 @@ $(document).ready(function () {
     // Register handler
     $("#register").on('click', function (e) {
         e.preventDefault();
-        
+
         let fname = $("#fname").val();
         let lname = $("#lname").val();
         let email = $("#email").val();
@@ -207,10 +210,10 @@ $(document).ready(function () {
     // Deactivate handler
     $("#deactivateBtn").on('click', function (e) {
         e.preventDefault();
-        
+
         const authData = getToken();
         if (!authData) return;
-        
+
         Swal.fire({
             title: 'Are you sure?',
             text: "This action cannot be undone!",
@@ -239,10 +242,10 @@ $(document).ready(function () {
                             timer: 2000,
                             timerProgressBar: true
                         });
-                        
+
                         sessionStorage.clear();
                         localStorage.clear();
-                        
+
                         setTimeout(() => {
                             window.location.href = 'login.html';
                         }, 2100);

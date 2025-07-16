@@ -28,7 +28,10 @@ const registerUser = async (req, res) => {
 
   const name = `${fname} ${lname}`;
   const hashedPassword = await bcrypt.hash(password, 10);
-  const userSql = 'INSERT INTO users (name, password, email, created_at) VALUES (?, ?, ?, NOW())';
+  const userSql = `
+    INSERT INTO users (name, password, email, role, profile_image, status, created_at)
+    VALUES (?, ?, ?, 'User', 'default.jpg', 'Active', NOW())
+  `;
   try {
     connection.execute(userSql, [name, hashedPassword, email], (err, result) => {
       if (err instanceof Error) {
@@ -56,43 +59,54 @@ const registerUser = async (req, res) => {
 const loginUser = (req, res) => {
   const { email, password } = req.body;
 
-  const sql = 'SELECT id, name, email, password FROM users WHERE email = ? AND deleted_at IS NULL';
+  if (!email || !password) {
+    return res.status(400).json({ success: false, message: 'Email and password are required' });
+  }
+
+  const sql = 'SELECT id, name, email, password FROM users WHERE email = ? AND status = "Active"';
+
+
   connection.execute(sql, [email], async (err, results) => {
     if (err) {
-      console.error('DB Error:', err);
-      return res.status(500).json({ error: 'Error logging in', details: err });
+      console.error('Login DB Error:', err);
+      return res.status(500).json({ success: false, message: 'Internal server error' });
     }
 
     if (results.length === 0) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+      return res.status(401).json({ success: false, message: 'Incorrect email or password' });
     }
 
     const user = results[0];
 
+    if (!user.password) {
+      return res.status(500).json({ success: false, message: 'User password not found' });
+    }
+
     try {
       const match = await bcrypt.compare(password, user.password);
+
       if (!match) {
-        return res.status(401).json({ success: false, message: 'Invalid email or password' });
+        return res.status(401).json({ success: false, message: 'Incorrect email or password' });
       }
 
-      // ✅ Generate token
       const token = jwt.sign(
         { id: user.id, email: user.email },
-        'yourSecretKey', // Replace this with a secure secret in .env
+        process.env.JWT_SECRET || 'yourSecretKey',
         { expiresIn: '1h' }
       );
 
-      // ✅ Remove password before sending response
       delete user.password;
 
       return res.status(200).json({
-        token,      // ✅ Include token in the response
-        user        // ✅ Include user data
+        success: true,
+        message: 'Login successful',
+        token,
+        user
       });
 
     } catch (bcryptError) {
-      console.error("Bcrypt Error:", bcryptError);
-      return res.status(500).json({ error: 'Internal server error' });
+      console.error('Password comparison error:', bcryptError);
+      return res.status(500).json({ success: false, message: 'Error verifying password' });
     }
   });
 };
@@ -100,7 +114,7 @@ const loginUser = (req, res) => {
 const getUserProfile = (req, res) => {
   const userId = req.params.id;
   const sql = 'SELECT * FROM customer WHERE user_id = ?';
-  
+
   connection.execute(sql, [userId], (err, results) => {
     if (err) {
       console.error(err);
@@ -195,4 +209,4 @@ const deactivateUser = (req, res) => {
   });
 };
 
-module.exports = { registerUser, loginUser, updateUser, deactivateUser, getUserProfile};
+module.exports = { registerUser, loginUser, updateUser, deactivateUser, getUserProfile };

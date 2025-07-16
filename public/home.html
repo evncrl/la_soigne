@@ -10,7 +10,6 @@
       integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
       crossorigin="anonymous"
     />
-
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.css"
@@ -19,6 +18,7 @@
       referrerpolicy="no-referrer"
     />
     <link rel="stylesheet" href="css/style.css" />
+
     <script
       src="https://code.jquery.com/jquery-3.6.4.min.js"
       integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8="
@@ -34,7 +34,6 @@
       integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
       crossorigin="anonymous"
     ></script>
-
     <script
       src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.min.js"
       integrity="sha512-LGHBR+kJ5jZSIzhhdfytPoEHzgaYuTRifq9g5l6ja6/k9NAOsAi5dQh4zQF6JIRB8cAYxTRedERUF+97/KuivQ=="
@@ -42,15 +41,117 @@
       referrerpolicy="no-referrer"
     ></script>
 
-    <script type="text/javascript" src="js/home.js"></script>
-    <title>Profile</title>
+    <title>Home</title>
+
+    <style>
+      .product-card img {
+        height: 200px;
+        object-fit: cover;
+      }
+    </style>
   </head>
   <body>
-    <!-- Header will be loaded here -->
+    <!-- ✅ Header will be loaded dynamically -->
     <div id="header"></div>
-  
-    <div class="container" id="items">
+
+    <div class="container mt-4">
       <h1 class="mb-4">Shop Products</h1>
+      <div class="row" id="items">
+        <!-- ✅ Products will be appended here -->
+      </div>
     </div>
+
+    <script>
+      $(document).ready(function () {
+        const token = localStorage.getItem("token");
+        const userId = localStorage.getItem("userId");
+
+        if (!token || !userId) {
+          Swal.fire({
+            icon: "warning",
+            text: "You must be logged in first!",
+            showConfirmButton: true,
+          }).then(() => {
+            window.location.href = "/login.html";
+          });
+          return;
+        }
+
+        // ✅ Load header just like in profile.html
+        $("#header").load("/header.html", function () {
+          $("body").css("padding-top", $("#header").outerHeight() + 20 + "px");
+
+          // Hide login/register, show dropdown
+          $("#login-link, #register-link").addClass("d-none");
+          $("#user-dropdown").removeClass("d-none");
+
+          // Fetch user data for dropdown
+          $.ajax({
+            url: `/api/v1/customers/${userId}`,
+            method: "GET",
+            success: function (res) {
+              if (res.success && res.data) {
+                const data = res.data;
+                const fullName = `${data.fname || ""} ${data.lname || ""}`.trim();
+                $("#username").text(fullName || "USER");
+                if (data.image_path) {
+                  $(".profile-img").attr("src", `/${data.image_path}`);
+                }
+              }
+            },
+          });
+        });
+
+        // ✅ Load products
+        loadProducts();
+      });
+
+      function loadProducts() {
+        const API_URL = "http://localhost:4000/api/v1/products";
+        $("#items").empty();
+
+        $.get(API_URL, function (products) {
+          if (!products || products.length === 0) {
+            $("#items").html(
+              '<div class="col-12 text-center"><p>No products available.</p></div>'
+            );
+            return;
+          }
+
+          products.forEach((product) => {
+            const firstImage = product.image
+              ? product.image.split(",")[0]
+              : "placeholder.png";
+
+            $("#items").append(`
+              <div class="col-md-4 mb-4">
+                <div class="card product-card shadow-sm">
+                  <img src="http://localhost:4000/images/${firstImage}" class="card-img-top" alt="${product.name}">
+                  <div class="card-body">
+                    <h5 class="card-title">${product.name}</h5>
+                    <p class="card-text text-muted">${product.description}</p>
+                    <p class="font-weight-bold text-primary">₱${product.price}</p>
+                    <button class="btn btn-success btn-block" onclick="addToCart(${product.id})">
+                      Add to Cart
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `);
+          });
+        });
+      }
+
+      function addToCart(productId) {
+        Swal.fire({
+          icon: "success",
+          title: "Added to Cart!",
+          text: `Product ID ${productId} has been added to your cart.`,
+          timer: 1500,
+          showConfirmButton: false,
+        });
+        // ✅ TODO: Add real add-to-cart logic here (localStorage or API)
+      }
+    </script>
   </body>
 </html>
