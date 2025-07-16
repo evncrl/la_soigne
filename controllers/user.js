@@ -36,9 +36,16 @@ const registerUser = async (req, res) => {
     connection.execute(userSql, [name, hashedPassword, email], (err, result) => {
       if (err instanceof Error) {
         console.log(err);
+        
+        // Check for duplicate email error
+        if (err.code === 'ER_DUP_ENTRY') {
+          return res.status(409).json({
+            error: 'Email already exists'
+          });
+        }
 
-        return res.status(401).json({
-          error: err
+        return res.status(500).json({
+          error: 'Database error occurred'
         });
       }
 
@@ -64,8 +71,6 @@ const loginUser = (req, res) => {
   }
 
   const sql = 'SELECT id, name, email, password FROM users WHERE email = ? AND status = "Active"';
-
-
   connection.execute(sql, [email], async (err, results) => {
     if (err) {
       console.error('Login DB Error:', err);
