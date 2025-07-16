@@ -30,11 +30,9 @@
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 
-<body>
-  <div id="loginBody"></div>
-
-  <form id="loginForm" style="max-width: 400px; margin: auto">
-    <h2>Login</h2>
+<body class="d-flex align-items-center justify-content-center" style="min-height: 100vh; background-color: #f8f9fa;">
+  <form class="login border p-4 bg-white rounded shadow" id="loginForm" style="max-width: 400px; width: 100%;">
+    <h2 class="text-center mb-4">Login</h2>
 
     <div class="form-group">
       <label for="email">Email:</label>
@@ -49,6 +47,11 @@
     <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
       Login
     </button>
+
+    <!-- ✅ Register link below button -->
+    <div class="text-center mt-3">
+      <a href="register.html">Register</a>
+    </div>
   </form>
 
   <script>
@@ -143,7 +146,7 @@
                 if (response.user.role === 'Admin') {
                   window.location.href = 'admin.html';
                 } else {
-                  window.location.href = 'home.html';  // ✅ Changed from profile.html
+                  window.location.href = 'home.html';
                 }
               });
             } else {
