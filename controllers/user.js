@@ -2,6 +2,7 @@ const connection = require('../config/database');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
+/* ✅ Register User */
 const registerUser = async (req, res) => {
   const { fname, lname, password, confirmPassword, email } = req.body;
 
@@ -44,6 +45,7 @@ const registerUser = async (req, res) => {
   }
 };
 
+/* ✅ Login User */
 const loginUser = (req, res) => {
   const { email, password } = req.body;
 
@@ -91,6 +93,7 @@ const loginUser = (req, res) => {
   });
 };
 
+/* ✅ Get User Profile (Customer Table) */
 const getUserProfile = (req, res) => {
   const userId = req.params.id;
   const sql = 'SELECT * FROM customer WHERE user_id = ?';
@@ -107,8 +110,10 @@ const getUserProfile = (req, res) => {
   });
 };
 
+/* ✅ Update or Insert Profile */
 const updateUser = (req, res) => {
-  console.log(req.body, req.file);
+  console.log("Update Profile Body:", req.body);
+  console.log("Uploaded File:", req.file);
 
   const { title, fname, lname, addressline, town, phone, userId } = req.body;
 
@@ -128,7 +133,7 @@ const updateUser = (req, res) => {
       addressline = VALUES(addressline),
       town = VALUES(town),
       phone = VALUES(phone),
-      image_path = VALUES(image_path)
+      image_path = IF(VALUES(image_path) IS NOT NULL, VALUES(image_path), image_path)
   `;
 
   const params = [
@@ -142,25 +147,21 @@ const updateUser = (req, res) => {
     userId
   ];
 
-  try {
-    connection.execute(userSql, params, (err, result) => {
-      if (err) {
-        console.log(err);
-        return res.status(400).json({ error: err.message });
-      }
+  connection.execute(userSql, params, (err, result) => {
+    if (err) {
+      console.log("❌ Update Profile Error:", err);
+      return res.status(400).json({ success: false, error: err.message });
+    }
 
-      return res.status(200).json({
-        success: true,
-        message: 'Profile updated',
-        result
-      });
+    return res.status(200).json({
+      success: true,
+      message: '✅ Profile updated successfully!',
+      result
     });
-  } catch (error) {
-    console.log(error);
-    return res.status(500).json({ error: 'Unexpected error' });
-  }
+  });
 };
 
+/* ✅ Deactivate User */
 const deactivateUser = (req, res) => {
   const { email } = req.body;
   if (!email) {
@@ -187,7 +188,7 @@ const deactivateUser = (req, res) => {
   });
 };
 
-/* ✅ NEW: Fetch all users (Admin Only) */
+/* ✅ Admin - Fetch all users */
 const getAllUsers = (req, res) => {
   const sql = 'SELECT id, name, email, role, profile_image, status, created_at FROM users';
   connection.execute(sql, (err, results) => {
@@ -199,7 +200,7 @@ const getAllUsers = (req, res) => {
   });
 };
 
-/* ✅ NEW: Update user status (Admin Only) */
+/* ✅ Admin - Update user status */
 const updateUserStatus = (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
@@ -221,12 +222,61 @@ const updateUserStatus = (req, res) => {
   });
 };
 
-module.exports = { 
-  registerUser, 
-  loginUser, 
-  updateUser, 
-  deactivateUser, 
-  getUserProfile, 
-  getAllUsers,       // ✅ NEW EXPORT
-  updateUserStatus   // ✅ NEW EXPORT
+/* ✅ Admin - Update user role */
+const updateUserRole = (req, res) => {
+  const { id } = req.params;
+  const { role } = req.body;
+
+  if (!['Admin', 'User'].includes(role)) {
+    return res.status(400).json({ error: 'Invalid role value' });
+  }
+
+  const sql = 'UPDATE users SET role = ?, updated_at = NOW() WHERE id = ?';
+  connection.execute(sql, [role, id], (err, result) => {
+    if (err) {
+      console.error('Error updating role:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    return res.status(200).json({ success: true, message: 'User role updated successfully' });
+  });
+};
+
+/* ✅ Admin - Combined update for role & status */
+const updateUserByAdmin = (req, res) => {
+  const { id } = req.params;
+  const { role, status } = req.body;
+
+  if (!['Admin', 'User'].includes(role)) {
+    return res.status(400).json({ error: 'Invalid role value' });
+  }
+  if (!['Active', 'Deactivated'].includes(status)) {
+    return res.status(400).json({ error: 'Invalid status value' });
+  }
+
+  const sql = 'UPDATE users SET role = ?, status = ?, updated_at = NOW() WHERE id = ?';
+  connection.execute(sql, [role, status, id], (err, result) => {
+    if (err) {
+      console.error('Error updating user:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    return res.status(200).json({ success: true, message: 'User updated successfully' });
+  });
+};
+
+module.exports = {
+  registerUser,
+  loginUser,
+  updateUser,
+  deactivateUser,
+  getUserProfile,
+  getAllUsers,
+  updateUserStatus,
+  updateUserRole,
+  updateUserByAdmin
 };

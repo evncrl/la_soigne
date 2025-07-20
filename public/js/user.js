@@ -1,10 +1,23 @@
 $(document).ready(function () {
     const url = 'http://localhost:4000/';
 
-    // Check login immediately on any page load
+    // ✅ Save login data to storage (helper)
+    function saveLoginData(user, token) {
+        sessionStorage.setItem('token', token);
+        sessionStorage.setItem('userId', user.id);
+        sessionStorage.setItem('userRole', user.role);
+
+        // optional: persist in localStorage if "remember me"
+        localStorage.setItem('token', token);
+        localStorage.setItem('userId', user.id);
+        localStorage.setItem('userRole', user.role);
+    }
+
+    // ✅ Check login helper
     const getToken = () => {
         const token = sessionStorage.getItem('token') || localStorage.getItem('token');
         const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+        const userRole = sessionStorage.getItem('userRole') || localStorage.getItem('userRole');
 
         if (!token || !userId) {
             Swal.fire({
@@ -16,17 +29,18 @@ $(document).ready(function () {
             });
             return null;
         }
+
         $('#userId').val(userId);
-        return { token, userId };
+        return { token, userId, userRole };
     };
 
     // Immediately block access if not logged in
     if (window.location.pathname.includes('profile.html')) {
         const authData = getToken();
-        if (!authData) return; // Stop further execution if not logged in
+        if (!authData) return;
     }
 
-    // Only initialize profile page if we're on the profile page
+    // ✅ Initialize profile page only on profile.html
     function initializeProfilePage() {
         if (window.location.pathname.includes('profile.html') || $('#profileForm').length > 0) {
             const authData = getToken();
@@ -40,7 +54,15 @@ $(document).ready(function () {
                 $('#login-link, #register-link').addClass('d-none');
                 $('#user-dropdown').removeClass('d-none');
 
-                // Fetch user data for header
+                $('#username').text('USER');
+
+                // ✅ ADMIN CHECK BASED ON STORED ROLE
+                if (authData.userRole === 'Admin') {
+                    $('body').addClass('is-admin');
+                    console.log("✅ Admin logged in");
+                }
+
+                // ✅ Fetch name & profile image (from customer table)
                 $.ajax({
                     url: `${url}api/users/customers/${authData.userId}`,
                     method: 'GET',
@@ -52,20 +74,15 @@ $(document).ready(function () {
                             if (data.image_path) {
                                 $('.profile-img').attr('src', `/${data.image_path}`);
                             }
-
-                            // ✅ ADMIN CHECK
-                            if (data.role === 'Admin') {
-                                $('body').addClass('is-admin');
-                                console.log("✅ Admin logged in");
-                            }
                         }
                     },
-                    error: function(xhr) {
+                    error: function (xhr) {
                         console.warn('Error fetching user data for dropdown:', xhr.responseText);
                     }
                 });
             });
 
+            // ✅ Fetch profile data for form
             function fetchProfileData() {
                 $.ajax({
                     url: `${url}api/users/customers/${userId}`,
@@ -98,7 +115,7 @@ $(document).ready(function () {
                 const file = this.files[0];
                 if (file) {
                     const reader = new FileReader();
-                    reader.onload = function(e) {
+                    reader.onload = function (e) {
                         $('#profileImagePreview').attr('src', e.target.result);
                     };
                     reader.readAsDataURL(file);
@@ -108,17 +125,10 @@ $(document).ready(function () {
             // Handle form submission
             $('#profileForm').on('submit', function (e) {
                 e.preventDefault();
-
                 const formData = new FormData(this);
 
-                // Ensure userId is set
                 if (!formData.get('userId')) {
                     formData.set('userId', userId);
-                }
-
-                console.log('Form data being sent:');
-                for (let pair of formData.entries()) {
-                    console.log(pair[0] + ': ' + pair[1]);
                 }
 
                 $.ajax({
@@ -128,7 +138,6 @@ $(document).ready(function () {
                     contentType: false,
                     processData: false,
                     success: function (response) {
-                        console.log('Success:', response);
                         Swal.fire({
                             icon: 'success',
                             text: response.message || 'Profile updated successfully!',
@@ -139,13 +148,10 @@ $(document).ready(function () {
                         fetchProfileData();
                     },
                     error: function (xhr) {
-                        console.error('Error:', xhr);
                         let errorMsg = 'Profile update failed';
-
                         if (xhr.responseJSON && xhr.responseJSON.error) {
                             errorMsg = xhr.responseJSON.error;
                         }
-
                         Swal.fire({
                             icon: 'error',
                             text: errorMsg,
@@ -159,7 +165,7 @@ $(document).ready(function () {
 
     initializeProfilePage();
 
-    // Register handler
+    // ✅ Register handler
     $("#register").on('click', function (e) {
         e.preventDefault();
 
@@ -170,11 +176,7 @@ $(document).ready(function () {
         let confirmPassword = $("#confirmPassword").val();
 
         if (password !== confirmPassword) {
-            Swal.fire({
-                icon: "error",
-                text: "Passwords do not match",
-                position: 'bottom-right'
-            });
+            Swal.fire({ icon: "error", text: "Passwords do not match", position: 'bottom-right' });
             return;
         }
 
@@ -187,7 +189,7 @@ $(document).ready(function () {
             processData: false,
             contentType: 'application/json; charset=utf-8',
             dataType: "json",
-            success: function (data) {
+            success: function () {
                 Swal.fire({
                     icon: "success",
                     text: "Registration successful",
@@ -198,16 +200,12 @@ $(document).ready(function () {
             },
             error: function (xhr) {
                 let msg = xhr.responseJSON?.error || "Registration failed";
-                Swal.fire({
-                    icon: "error",
-                    text: msg,
-                    position: 'bottom-right'
-                });
+                Swal.fire({ icon: "error", text: msg, position: 'bottom-right' });
             }
         });
     });
 
-    // Deactivate handler
+    // ✅ Deactivate handler
     $("#deactivateBtn").on('click', function (e) {
         e.preventDefault();
 
@@ -227,9 +225,7 @@ $(document).ready(function () {
                 $.ajax({
                     method: "DELETE",
                     url: `${url}api/v1/deactivate`,
-                    headers: {
-                        'Authorization': `Bearer ${authData.token}`
-                    },
+                    headers: { 'Authorization': `Bearer ${authData.token}` },
                     data: JSON.stringify({ userId: authData.userId }),
                     processData: false,
                     contentType: 'application/json; charset=utf-8',
@@ -250,70 +246,21 @@ $(document).ready(function () {
                             window.location.href = 'login.html';
                         }, 2100);
                     },
-                    error: function (xhr) {
-                        Swal.fire({
-                            icon: "error",
-                            text: "Deactivation failed",
-                            position: 'bottom-right'
-                        });
+                    error: function () {
+                        Swal.fire({ icon: "error", text: "Deactivation failed", position: 'bottom-right' });
                     }
                 });
             }
         });
     });
 
-    // Particle animation
-    function createParticle() {
-        const particle = $('<div class="particle"></div>');
-        particle.css({
-            left: Math.random() * 100 + '%',
-            animationDelay: Math.random() * 2 + 's',
-            animationDuration: (Math.random() * 3 + 4) + 's'
-        });
-        $('body').append(particle);
-        setTimeout(() => particle.remove(), 7000);
-    }
-
-    setInterval(createParticle, 2000);
-
-    // Validation functions
-    function validateEmail(email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-    }
-
-    function validatePassword(password) {
-        return password.length >= 8;
-    }
-
-    function showError(inputId, message) {
-        const input = $('#' + inputId);
-        const errorDiv = $('#' + inputId.replace('login', '').toLowerCase() + 'Error');
-        input.addClass('error').removeClass('success');
-        errorDiv.text(message).addClass('show');
-        setTimeout(() => input.removeClass('error'), 500);
-    }
-
-    function showSuccess(inputId) {
-        const input = $('#' + inputId);
-        const errorDiv = $('#' + inputId.replace('login', '').toLowerCase() + 'Error');
-        input.addClass('success').removeClass('error');
-        errorDiv.removeClass('show');
-    }
-
-    // Forgot password
+    // ✅ Forgot password
     $('#forgotPasswordLink').on('click', function (e) {
         e.preventDefault();
         const email = $('#loginEmail').val();
 
         if (!email) {
-            showError('loginEmail', 'Please enter your email address first');
-            $('#loginEmail').focus();
-            return;
-        }
-
-        if (!validateEmail(email)) {
-            showError('loginEmail', 'Please enter a valid email address');
+            Swal.fire({ icon: 'error', text: 'Please enter your email address first' });
             $('#loginEmail').focus();
             return;
         }
@@ -323,14 +270,14 @@ $(document).ready(function () {
             url: `${url}api/v1/forgot-password`,
             data: JSON.stringify({ email }),
             contentType: 'application/json; charset=utf-8',
-            success: function() {
+            success: function () {
                 Swal.fire({
                     icon: 'info',
                     text: 'Password reset instructions have been sent to your email address.',
                     showConfirmButton: true
                 });
             },
-            error: function(xhr) {
+            error: function (xhr) {
                 Swal.fire({
                     icon: 'error',
                     text: xhr.responseJSON?.message || 'Failed to send reset instructions',

@@ -2,7 +2,7 @@ const API_PRODUCTS = "http://localhost:4000/api/v1/products";
 const API_USERS = "http://localhost:4000/api/v1/users";
 let isEditMode = false;
 
-// ✅ Logout Function
+/* ------------------- ✅ LOGOUT ------------------- */
 $("#logoutBtn").click(() => {
   Swal.fire({
     icon: "warning",
@@ -13,24 +13,25 @@ $("#logoutBtn").click(() => {
     cancelButtonText: "Cancel"
   }).then((result) => {
     if (result.isConfirmed) {
-      localStorage.clear();
+      localStorage.removeItem('token');
+      localStorage.removeItem('userId');
       window.location.href = "/login.html";
     }
   });
 });
 
-// ✅ SPA Navigation
+/* ------------------- ✅ SPA NAVIGATION ------------------- */
 $(".nav-btn").on("click", function () {
   const page = $(this).data("page");
   loadPage(page);
 });
 
-// ✅ Default Page
+/* ✅ Default Page */
 $(document).ready(() => {
   loadPage("products");
 });
 
-// ✅ Load Page
+/* ✅ Load Pages */
 function loadPage(page) {
   $("#main-content").html("<p>Loading...</p>");
 
@@ -56,11 +57,11 @@ function loadPage(page) {
   }
 }
 
-/* ------------------- ✅ USERS SECTION ------------------- */
+/* ------------------- ✅ USERS SECTION (DataTables Version) ------------------- */
 function loadUsersPage() {
   $("#main-content").html(`
     <h2>All Users</h2>
-    <table class="table table-bordered table-striped mt-3">
+    <table id="usersTable" class="table table-bordered table-striped mt-3" style="width:100%">
       <thead>
         <tr>
           <th>ID</th>
@@ -69,69 +70,104 @@ function loadUsersPage() {
           <th>Role</th>
           <th>Status</th>
           <th>Created At</th>
-          <th>Action</th>
+          <th>Actions</th>
         </tr>
       </thead>
-      <tbody id="usersBody"></tbody>
     </table>
   `);
 
-  $.get(API_USERS, function (data) {
-    if (!data || data.length === 0) {
-      $("#usersBody").html("<tr><td colspan='7'>No users found.</td></tr>");
-      return;
-    }
+  const token = localStorage.getItem("token");
 
-    data.forEach(user => {
-      const statusBtn = user.status === "Active"
-        ? `<button class="btn btn-sm btn-danger" onclick="updateUserStatus(${user.id}, 'Deactivated')">Deactivate</button>`
-        : `<button class="btn btn-sm btn-success" onclick="updateUserStatus(${user.id}, 'Active')">Activate</button>`;
-
-      $("#usersBody").append(`
-        <tr>
-          <td>${user.id}</td>
-          <td>${user.name}</td>
-          <td>${user.email}</td>
-          <td>${user.role}</td>
-          <td>${user.status}</td>
-          <td>${new Date(user.created_at).toLocaleString()}</td>
-          <td>${statusBtn}</td>
-        </tr>
-      `);
-    });
+  $('#usersTable').DataTable({
+    destroy: true,
+    ajax: {
+      url: API_USERS,
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+      dataSrc: "data"
+    },
+    columns: [
+      { data: "id" },
+      { data: "name" },
+      { data: "email" },
+      {
+        data: "role",
+        render: (data, type, row) => `
+          <select class="form-control form-control-sm user-role" data-id="${row.id}" disabled>
+            <option value="User" ${data === "User" ? "selected" : ""}>User</option>
+            <option value="Admin" ${data === "Admin" ? "selected" : ""}>Admin</option>
+          </select>
+        `
+      },
+      {
+        data: "status",
+        render: (data, type, row) => `
+          <select class="form-control form-control-sm user-status" data-id="${row.id}" disabled>
+            <option value="Active" ${data === "Active" ? "selected" : ""}>Active</option>
+            <option value="Deactivated" ${data === "Deactivated" ? "selected" : ""}>Deactivated</option>
+          </select>
+        `
+      },
+      { data: "created_at", render: data => new Date(data).toLocaleString() },
+      {
+        data: null,
+        render: (data, type, row) =>
+          `<button class="btn btn-primary btn-sm edit-user" data-id="${row.id}">Edit</button>`
+      }
+    ]
   });
-}
 
-function updateUserStatus(id, newStatus) {
-  Swal.fire({
-    title: `Change status to ${newStatus}?`,
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonText: "Yes, update"
-  }).then((result) => {
-    if (result.isConfirmed) {
-      $.ajax({
-        url: `${API_USERS}/${id}/status`,
-        method: "PUT",
-        contentType: "application/json",
-        data: JSON.stringify({ status: newStatus }),
-        success: function () {
-          Swal.fire("Updated!", "User status updated.", "success");
-          loadUsersPage();
-        },
-        error: function () {
-          Swal.fire("Error", "Failed to update user status.", "error");
+  // ✅ Edit or Save User
+  $("#usersTable").on("click", ".edit-user", function () {
+    const id = $(this).data("id");
+    const $btn = $(this);
+    const $role = $(`.user-role[data-id="${id}"]`);
+    const $status = $(`.user-status[data-id="${id}"]`);
+
+    if ($btn.text() === "Edit") {
+      $btn.text("Save").removeClass("btn-primary").addClass("btn-success");
+      $role.prop("disabled", false);
+      $status.prop("disabled", false);
+    } else {
+      const role = $role.val();
+      const status = $status.val();
+
+      Swal.fire({
+        title: "Update User?",
+        text: `Role: ${role}, Status: ${status}`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Yes, update"
+      }).then((result) => {
+        if (result.isConfirmed) {
+          $.ajax({
+            url: `${API_USERS}/${id}/update`,
+            method: "PUT",
+            contentType: "application/json",
+            data: JSON.stringify({ role, status }),
+            success: () => {
+              Swal.fire("Updated!", "User updated successfully.", "success");
+              $("#usersTable").DataTable().ajax.reload();
+            },
+            error: () => {
+              Swal.fire("Error", "Failed to update user.", "error");
+            }
+          });
+        } else {
+          $role.prop("disabled", true);
+          $status.prop("disabled", true);
+          $btn.text("Edit").removeClass("btn-success").addClass("btn-primary");
         }
       });
     }
   });
 }
 
-/* ------------------- ✅ PRODUCTS SECTION ------------------- */
+/* ------------------- ✅ PRODUCTS SECTION (DataTables Version) ------------------- */
 function loadProductsPage() {
   $("#main-content").html(`
     <h2 class="mb-4">All Products</h2>
-    <table class="table table-bordered table-striped mt-3">
+    <table id="productsTable" class="table table-bordered table-striped mt-3" style="width:100%">
       <thead>
         <tr>
           <th>ID</th>
@@ -144,7 +180,6 @@ function loadProductsPage() {
           <th>Actions</th>
         </tr>
       </thead>
-      <tbody id="productsBody"></tbody>
     </table>
     <button class="btn btn-success mt-3" id="openAddModal" data-toggle="modal" data-target="#productModal">
       + Add Product
@@ -204,39 +239,51 @@ function loadProductsPage() {
     </div>
   `);
 
-  loadProducts();
+  loadProductsTable();
   initProductEvents();
 }
 
-function loadProducts() {
-  $("#productsBody").empty();
-  $.get(API_PRODUCTS, function (data) {
-    if (!data || data.length === 0) {
-      $("#productsBody").append("<tr><td colspan='8'>No products found.</td></tr>");
-      return;
-    }
-    data.forEach(product => {
-      $("#productsBody").append(`
-        <tr>
-          <td>${product.id}</td>
-          <td>${product.name}</td>
-          <td>${product.description}</td>
-          <td>₱${product.price}</td>
-          <td>${product.category}</td>
-          <td>
-            ${product.image
-              .split(',')
-              .map(img => `<img src="http://localhost:4000/images/${img}" width="50" class="mr-1">`)
-              .join('')}
-          </td>
-          <td>${new Date(product.created_at).toLocaleString()}</td>
-          <td>
-            <button class="btn btn-primary btn-sm" onclick="editProduct(${product.id}, '${product.name}', '${product.description}', '${product.price}', '${product.category}')">Edit</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteProduct(${product.id})">Delete</button>
-          </td>
-        </tr>
-      `);
-    });
+function loadProductsTable() {
+  const token = localStorage.getItem("token");
+
+  $('#productsTable').DataTable({
+    destroy: true,
+    ajax: {
+      url: API_PRODUCTS,
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+      dataSrc: ""
+    },
+    columns: [
+      { data: "id" },
+      { data: "name" },
+      { data: "description" },
+      { data: "price", render: data => `₱${data}` },
+      { data: "category" },
+      {
+        data: "image",
+        render: (data) =>
+          data
+            .split(",")
+            .map(img => `<img src="http://localhost:4000/images/${img}" width="40" class="mr-1">`)
+            .join("")
+      },
+      { data: "created_at", render: data => new Date(data).toLocaleString() },
+      {
+        data: null,
+        render: (data, type, row) => `
+          <button class="btn btn-primary btn-sm edit-product"
+            data-id="${row.id}"
+            data-name="${row.name}"
+            data-description="${row.description}"
+            data-price="${row.price}"
+            data-category="${row.category}">
+            Edit
+          </button>
+          <button class="btn btn-danger btn-sm delete-product" data-id="${row.id}">Delete</button>
+        `
+      }
+    ]
   });
 }
 
@@ -249,7 +296,16 @@ function initProductEvents() {
     $("#productId").val("");
   });
 
-  $("#saveBtn").on("click", function () {
+  $("#productsTable").on("click", ".edit-product", function () {
+    const btn = $(this).data();
+    editProduct(btn.id, btn.name, btn.description, btn.price, btn.category);
+  });
+
+  $("#productsTable").on("click", ".delete-product", function () {
+    deleteProduct($(this).data("id"));
+  });
+
+  $("#saveBtn").off("click").on("click", function () {
     if (!validateFields()) {
       Swal.fire({ icon: "warning", title: "Please correct all fields before submitting." });
       return;
@@ -283,7 +339,7 @@ function initProductEvents() {
         }).then(() => {
           $("#productForm")[0].reset();
           $("#productModal").modal("hide");
-          loadProducts();
+          $('#productsTable').DataTable().ajax.reload();
         });
       },
       error: function (xhr) {
@@ -293,6 +349,7 @@ function initProductEvents() {
   });
 }
 
+/* ------------------- ✅ Product Utility Functions ------------------- */
 function validateFields() {
   let valid = true;
   function showError(id, message) {
@@ -340,7 +397,7 @@ function deleteProduct(id) {
         url: `${API_PRODUCTS}/${id}`,
         success: function () {
           Swal.fire("Deleted!", "Product has been deleted.", "success");
-          loadProducts();
+          $('#productsTable').DataTable().ajax.reload();
         },
         error: function () {
           Swal.fire("Error", "Failed to delete product.", "error");

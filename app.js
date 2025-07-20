@@ -5,7 +5,7 @@ require('dotenv').config();
 
 const productRoutes = require('./routes/product');
 const userRoutes = require('./routes/user');
-const cartRoutes = require('./routes/cart'); // ✅ ADD HERE
+const cartRoutes = require('./routes/cart');
 
 const app = express();
 
@@ -23,7 +23,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ✅ API Routes
 app.use('/api/v1', productRoutes);
 app.use('/api/v1', userRoutes);
-app.use('/api/v1/cart', cartRoutes); // ✅ CART
+app.use('/api/v1/cart', cartRoutes);
 
 // ✅ Default Route
 app.get('/', (req, res) => {

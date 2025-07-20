@@ -6,122 +6,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Your Cart - La Soigne</title>
 
-  <!-- ✅ Header / Navbar CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
 
   <style>
     body {
-      padding-top: 70px;
+      padding-top: 90px;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background-color: #f8f9fa;
     }
 
-    .navbar {
-      background: linear-gradient(90deg, #ffffff 0%, #ffffff 100%);
-      border-bottom: 3px solid #000000;
-    }
-
-    .navbar-brand {
-      color: #000000 !important;
-      font-weight: bold;
-      font-size: 1.3rem;
-      letter-spacing: 1px;
-      text-shadow: 1px 1px 2px #666666;
-    }
-
-    .navbar-nav .nav-link {
-      color: #000000 !important;
-      transition: color 0.3s ease;
-    }
-
-    .navbar-nav .nav-link:hover {
-      color: #ffffff !important;
-    }
-
-    .dropdown-menu {
-      background-color: #ffffff;
-      border: 1px solid #000000;
-    }
-
-    .dropdown-item {
-      color: #000000;
-    }
-
-    .dropdown-item:hover {
-      background-color: #000000;
-      color: #fffdfd;
-    }
-
-    .profile-img {
+    .product-img {
+      width: 50px;
+      height: 50px;
       object-fit: cover;
-      border: 2px solid #ffffff;
-      box-shadow: 0 0 5px rgba(126, 126, 126, 0.6);
+      border-radius: 5px;
     }
   </style>
 </head>
 
-<body class="bg-light">
-
-  <!-- ✅ NAVBAR -->
-  <nav class="navbar navbar-expand-md navbar-dark fixed-top shadow-sm">
-    <div class="container">
-      <a class="navbar-brand" href="/home.html">
-        La Soigné
-      </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-
-      <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <!-- Left Nav -->
-        <ul class="navbar-nav me-auto">
-          <li class="nav-item"><a class="nav-link" href="/shop.html">SHOP</a></li>
-          <li class="nav-item">
-            <a class="nav-link active" href="/cart.html">
-              <i class="bi bi-cart3"></i> CART
-              <span class="badge bg-warning text-dark" id="cart-count">0</span>
-            </a>
-          </li>
-          <li class="nav-item"><a class="nav-link" href="/orders.html">MY ORDERS</a></li>
-          <li class="nav-item"><a class="nav-link" href="/reviews.html">MY REVIEWS</a></li>
-        </ul>
-
-        <!-- Right Nav -->
-        <ul class="navbar-nav ms-auto align-items-center">
-          <!-- Search -->
-          <form class="d-flex me-3" action="/search.html" method="GET">
-            <input class="form-control me-2" type="search" name="term" placeholder="Search..." />
-            <button class="btn btn-hw" type="submit"><i class="bi bi-search"></i></button>
-          </form>
-
-          <!-- Guest Links -->
-          <li class="nav-item" id="login-link">
-            <a class="nav-link btn btn-hw-outline mx-1" href="/login.html">LOGIN</a>
-          </li>
-          <li class="nav-item" id="register-link">
-            <a class="nav-link btn btn-hw mx-1" href="/register.html">REGISTER</a>
-          </li>
-
-          <!-- Authenticated User Dropdown -->
-          <li class="nav-item dropdown d-none" id="user-dropdown">
-            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button"
-              data-bs-toggle="dropdown" aria-expanded="false">
-              <img src="/uploads/default.jpg" alt="Profile Image" class="rounded-circle profile-img" width="40"
-                height="40" />
-              <span class="ms-2 text-uppercase" id="username">USER</span>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-              <li><a class="dropdown-item" href="/profile.html"><i class="bi bi-person-circle me-2"></i>PROFILE</a></li>
-              <li><a class="dropdown-item" href="#" onclick="logoutUser()"><i
-                    class="bi bi-box-arrow-right me-2"></i>LOGOUT</a></li>
-            </ul>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </nav>
+<body>
+  <!-- ✅ HEADER (DYNAMICALLY LOADED) -->
+  <div id="header"></div>
 
   <!-- ✅ CART CONTENT -->
   <div class="container py-5">
@@ -129,7 +36,7 @@
 
     <div class="table-responsive">
       <table class="table table-bordered table-striped text-center bg-white">
-        <thead class="thead-dark">
+        <thead class="table-dark">
           <tr>
             <th>Product</th>
             <th>Price</th>
@@ -147,13 +54,13 @@
     <div class="d-flex justify-content-between align-items-center mt-4">
       <h4>Total: <span id="cartTotal" class="text-success">₱0</span></h4>
       <div>
-        <button class="btn btn-secondary mr-2" onclick="clearCart()">Clear Cart</button>
+        <button class="btn btn-secondary me-2" onclick="clearCart()">Clear Cart</button>
         <button class="btn btn-success" onclick="checkout()">Checkout</button>
       </div>
     </div>
 
     <div class="mt-4 text-center">
-      <a href="shop.html" class="btn btn-outline-primary">← Continue Shopping</a>
+      <a href="home.html" class="btn btn-outline-primary">← Continue Shopping</a>
     </div>
   </div>
 
@@ -163,39 +70,44 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <script>
-    function logoutUser() {
-      localStorage.removeItem('token');
-      localStorage.removeItem('userId');
-      window.location.href = '/login.html';
-    }
+    let userId;
+    let cartKey;
 
-    document.addEventListener('DOMContentLoaded', () => {
+    $(document).ready(function () {
       const token = localStorage.getItem('token');
-      const userId = localStorage.getItem('userId');
+      userId = localStorage.getItem('userId');
+      cartKey = `cart_${userId}`;
 
-      if (token && userId) {
-        $('#login-link, #register-link').addClass('d-none');
-        $('#user-dropdown').removeClass('d-none');
+      // ✅ Load header dynamically
+      $("#header").load("/header.html", function () {
+        const headerHeight = $("#header").outerHeight() || 60;
+        $("body").css("padding-top", headerHeight + 20 + "px");
 
-        $.get(`/api/users/customers/${userId}`, function (res) {
-          if (res.success && res.data) {
-            const data = res.data;
-            const fullName = `${data.fname || ''} ${data.lname || ''}`.trim();
-            $('#username').text(fullName || 'USER');
-            if (data.image_path) {
-              $('.profile-img').attr('src', `/${data.image_path}`);
+        if (token && userId) {
+          $("#login-link, #register-link").addClass("d-none");
+          $("#user-dropdown").removeClass("d-none");
+
+          $.get(`/api/v1/customers/${userId}`, function (res) {
+            if (res.success && res.data) {
+              const data = res.data;
+              const fullName = `${data.fname || ''} ${data.lname || ''}`.trim();
+              $("#username").text(fullName || "USER");
+              if (data.image_path) {
+                $(".profile-img").attr("src", `/${data.image_path}`);
+              }
             }
-          }
-        });
-      } else {
-        $('#login-link, #register-link').removeClass('d-none');
-        $('#user-dropdown').addClass('d-none');
-      }
+          });
+        } else {
+          $("#login-link, #register-link").removeClass("d-none");
+          $("#user-dropdown").addClass("d-none");
+        }
+      });
+
+      loadCart();
     });
 
-    // ✅ CART SCRIPT (SAME AS BEFORE)
     function loadCart() {
-      let cart = JSON.parse(localStorage.getItem("cart")) || [];
+      let cart = JSON.parse(localStorage.getItem(cartKey)) || [];
       let cartBody = $("#cartBody");
       let total = 0;
 
@@ -204,11 +116,8 @@
       if (cart.length === 0) {
         cartBody.append(`<tr><td colspan="5" class="text-muted">Your cart is empty.</td></tr>`);
         $("#cartTotal").text("₱0");
-        $("#cart-count").text("0");
         return;
       }
-
-      $("#cart-count").text(cart.length);
 
       cart.forEach((item, index) => {
         const itemTotal = item.price * item.quantity;
@@ -216,9 +125,9 @@
 
         cartBody.append(`
           <tr>
-            <td class="text-left">
-              <img src="http://localhost:4000/images/${item.image}" width="50" class="mr-2 rounded">
-              ${item.name}
+            <td class="text-start">
+              <img src="http://localhost:4000/images/${item.image || 'placeholder.png'}" 
+                   class="product-img me-2"> ${item.name}
             </td>
             <td>₱${item.price}</td>
             <td>
@@ -237,15 +146,15 @@
     }
 
     function updateQuantity(index, newQuantity) {
-      let cart = JSON.parse(localStorage.getItem("cart")) || [];
+      let cart = JSON.parse(localStorage.getItem(cartKey)) || [];
       if (newQuantity <= 0) newQuantity = 1;
       cart[index].quantity = parseInt(newQuantity);
-      localStorage.setItem("cart", JSON.stringify(cart));
+      localStorage.setItem(cartKey, JSON.stringify(cart));
       loadCart();
     }
 
     function removeItem(index) {
-      let cart = JSON.parse(localStorage.getItem("cart")) || [];
+      let cart = JSON.parse(localStorage.getItem(cartKey)) || [];
       Swal.fire({
         title: "Remove this item?",
         icon: "warning",
@@ -255,7 +164,7 @@
       }).then((result) => {
         if (result.isConfirmed) {
           cart.splice(index, 1);
-          localStorage.setItem("cart", JSON.stringify(cart));
+          localStorage.setItem(cartKey, JSON.stringify(cart));
           loadCart();
           Swal.fire("Removed!", "Item removed from cart.", "success");
         }
@@ -272,7 +181,7 @@
         cancelButtonText: "Cancel"
       }).then((result) => {
         if (result.isConfirmed) {
-          localStorage.removeItem("cart");
+          localStorage.removeItem(cartKey);
           loadCart();
           Swal.fire("Cleared!", "Your cart is now empty.", "success");
         }
@@ -280,7 +189,7 @@
     }
 
     function checkout() {
-      let cart = JSON.parse(localStorage.getItem("cart")) || [];
+      let cart = JSON.parse(localStorage.getItem(cartKey)) || [];
       if (cart.length === 0) {
         Swal.fire("Oops!", "Your cart is empty!", "warning");
         return;
@@ -291,8 +200,6 @@
     $(document).on("change", ".quantity-input", function () {
       updateQuantity($(this).data("index"), $(this).val());
     });
-
-    $(document).ready(loadCart);
   </script>
 </body>
 
