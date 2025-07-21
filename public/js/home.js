@@ -19,14 +19,43 @@ $(document).ready(function () {
         success: function (data) {
             $("#items").empty();
             let row;
+
             $.each(data.rows, function (key, value) {
                 if (key % 4 === 0) {
                     row = $('<div class="row"></div>');
                     $("#items").append(row);
                 }
+
+                // ✅ Handle multiple images (auto-detect JSON array or comma-separated)
+                let images = [];
+                if (Array.isArray(value.image)) {
+                    images = value.image;
+                } else if (typeof value.image === "string") {
+                    images = value.image.split(',').map(img => img.trim());
+                }
+
+                // ✅ Build carousel items dynamically
+                let carouselItems = '';
+                $.each(images, function (index, img) {
+                    carouselItems += `
+                        <div class="carousel-item ${index === 0 ? 'active' : ''}">
+                            <img src="${url}${img}" class="d-block w-100" alt="${value.description}">
+                        </div>`;
+                });
+
                 var item = `<div class="col-md-3 mb-4">
                     <div class="card h-100">
-                        <img src="${url}${value.image}" class="card-img-top" alt="${value.description}">
+                        <div id="carousel${value.item_id}" class="carousel slide" data-ride="carousel">
+                            <div class="carousel-inner">
+                                ${carouselItems}
+                            </div>
+                            <a class="carousel-control-prev" href="#carousel${value.item_id}" role="button" data-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            </a>
+                            <a class="carousel-control-next" href="#carousel${value.item_id}" role="button" data-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            </a>
+                        </div>
                         <div class="card-body">
                             <h5 class="card-title">${value.item_name || value.description}</h5>
                             <p class="card-text">₱ ${value.sell_price}</p>
@@ -35,7 +64,7 @@ $(document).ready(function () {
                                 data-name="${value.item_name || value.description}"
                                 data-description="${value.description}"
                                 data-price="${value.sell_price}"
-                                data-image="${value.image}"
+                                data-image='${JSON.stringify(images)}'
                                 data-stock="${value.quantity ?? 0}">Details</a>
                         </div>
                     </div>
@@ -64,25 +93,44 @@ $(document).ready(function () {
                 `);
             }
 
-            // Show details event
+            // Show details event (carousel inside modal)
             $(".show-details").on('click', function () {
                 const id = $(this).data('id');
                 const name = $(this).data('name');
                 const description = $(this).data('description');
                 const price = $(this).data('price');
-                const image = $(this).data('image');
+                const images = JSON.parse($(this).attr('data-image'));
                 const stock = $(this).data('stock');
+
+                // Build carousel for modal
+                let modalCarouselItems = '';
+                $.each(images, function (index, img) {
+                    modalCarouselItems += `
+                        <div class="carousel-item ${index === 0 ? 'active' : ''}">
+                            <img src="${url}${img}" class="d-block w-100" style="max-height:200px;">
+                        </div>`;
+                });
 
                 $('#productDetailsModalLabel').text(name);
                 $('#productDetailsModalBody').html(`
-    <img src="${url}${image}" class="img-fluid mb-3" style="max-height:200px;">
-    <p class="mb-2"><strong>Description:</strong> ${description}</p>
-    <p id="price">Price: ₱<strong>${price}</strong></p>
-    <p>Stock: ${stock}</p>
-    <input type="number" class="form-control mb-3" id="detailsQty" min="1" max="${stock}" value="1">
-    <input type="hidden" id="detailsItemId" value="${id}">
-    <button type="button" class="btn btn-primary" id="detailsAddToCart">Add to Cart</button>
-`);
+                    <div id="modalCarousel${id}" class="carousel slide mb-3" data-ride="carousel">
+                        <div class="carousel-inner">
+                            ${modalCarouselItems}
+                        </div>
+                        <a class="carousel-control-prev" href="#modalCarousel${id}" role="button" data-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        </a>
+                        <a class="carousel-control-next" href="#modalCarousel${id}" role="button" data-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        </a>
+                    </div>
+                    <p class="mb-2"><strong>Description:</strong> ${description}</p>
+                    <p id="price">Price: ₱<strong>${price}</strong></p>
+                    <p>Stock: ${stock}</p>
+                    <input type="number" class="form-control mb-3" id="detailsQty" min="1" max="${stock}" value="1">
+                    <input type="hidden" id="detailsItemId" value="${id}">
+                    <button type="button" class="btn btn-primary" id="detailsAddToCart">Add to Cart</button>
+                `);
 
                 $('#productDetailsModal').modal('show');
             });
@@ -99,7 +147,7 @@ $(document).ready(function () {
         const id = $("#detailsItemId").val();
         const description = $("#productDetailsModalLabel").text();
         const price = $("#productDetailsModalBody strong").text().replace(/[^\d.]/g, '');
-        const image = $("#productDetailsModalBody img").attr('src');
+        const image = $("#productDetailsModalBody img").attr('src'); // takes first image
         const stock = parseInt($("#productDetailsModalBody p:contains('Stock')").text().replace(/[^\d]/g, ''));
         let cart = getCart();
 

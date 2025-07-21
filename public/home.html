@@ -4,34 +4,16 @@
 <head>
   <meta charset="utf-8" />
 
-  <!-- Latest compiled and minified CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css"
-    integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.css"
-    integrity="sha512-fjO3Vy3QodX9c6G9AUmr6WuIaEPdGRxBjD7gjatG5gGylzYyrEq3U0q+smkG6CwIY0L8XALRFHh4KPHig0Q1ug=="
-    crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <link rel="stylesheet" href="css/style.css" />
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.css">
+  <link rel="stylesheet" href="css/style.css" /> <!-- ✅ external CSS -->
 
-  <script src="https://code.jquery.com/jquery-3.6.4.min.js"
-    integrity="sha256-oP6HI9z1XaZNBrJURtCoUT5SUnxFr8s3BzRl+cbzUq8=" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.12.9/dist/umd/popper.min.js"
-    integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
-    crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js"
-    integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
-    crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.min.js"
-    integrity="sha512-LGHBR+kJ5jZSIzhhdfytPoEHzgaYuTRifq9g5l6ja6/k9NAOsAi5dQh4zQF6JIRB8cAYxTRedERUF+97/KuivQ=="
-    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.min.js"></script>
 
   <title>Home</title>
-
-  <style>
-    .product-card img {
-      height: 200px;
-      object-fit: cover;
-    }
-  </style>
 </head>
 
 <body>
@@ -63,7 +45,7 @@
         return;
       }
 
-      // ✅ Load header (same as profile.html)
+      // ✅ Load header
       $("#header").load("/header.html", function () {
         const headerHeight = $("#header").outerHeight() || 60;
         $("body").css("padding-top", headerHeight + 20 + "px");
@@ -71,7 +53,6 @@
         $("#login-link, #register-link").addClass("d-none");
         $("#user-dropdown").removeClass("d-none");
 
-        // Fetch user data for dropdown
         $.ajax({
           url: `/api/v1/customers/${userId}`,
           method: "GET",
@@ -105,20 +86,44 @@
         }
 
         products.forEach((product) => {
-          const firstImage = product.image
-            ? product.image.split(",")[0]
-            : "placeholder.png";
+          const images = product.image
+            ? product.image.split(",").map(img => img.trim())
+            : ["placeholder.png"];
+
+          let carouselInner = "";
+          images.forEach((img, index) => {
+            carouselInner += `
+              <div class="carousel-item ${index === 0 ? "active" : ""}">
+                <img src="http://localhost:4000/images/${img}" class="d-block w-100" alt="${product.name}">
+              </div>`;
+          });
+
+          const carouselId = `carousel${product.id}`;
+
+          const carouselHTML = `
+            <div id="${carouselId}" class="carousel slide" data-ride="carousel">
+              <div class="carousel-inner">
+                ${carouselInner}
+              </div>
+              ${images.length > 1
+              ? `<a class="carousel-control-prev" href="#${carouselId}" role="button" data-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                  </a>
+                  <a class="carousel-control-next" href="#${carouselId}" role="button" data-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                  </a>` : ""}
+            </div>`;
 
           $("#items").append(`
             <div class="col-md-4 mb-4">
               <div class="card product-card shadow-sm">
-                <img src="http://localhost:4000/images/${firstImage}" class="card-img-top" alt="${product.name}">
+                ${carouselHTML}
                 <div class="card-body">
                   <h5 class="card-title">${product.name}</h5>
                   <p class="card-text text-muted">${product.description}</p>
                   <p class="font-weight-bold text-primary">₱${product.price}</p>
                   <button class="btn btn-success btn-block" 
-                    onclick="addToCart(${product.id}, '${product.name}', ${product.price}, '${firstImage}')">
+                    onclick="addToCart(${product.id}, '${product.name}', ${product.price}, '${images[0]}')">
                     Add to Cart
                   </button>
                 </div>

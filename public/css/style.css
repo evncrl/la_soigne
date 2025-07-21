@@ -193,3 +193,12 @@
   justify-content: center;
 }
 
+.product-card img {
+  height: 200px;
+  object-fit: cover;
+}
+
+.carousel-inner img {
+  height: 200px;
+  object-fit: cover;
+}
