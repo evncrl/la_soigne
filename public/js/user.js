@@ -286,4 +286,41 @@ $(document).ready(function () {
             }
         });
     });
+
+    // ✅ LOGOUT HANDLER (NEW)
+    $('#logoutBtn').on('click', function (e) {
+        e.preventDefault();
+
+        const authData = getToken();
+        if (!authData) return;
+
+        Swal.fire({
+            title: 'Logout?',
+            text: 'You will be logged out of your account.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, logout'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: `${url}api/users/logout`,
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${authData.token}` },
+                    success: function () {
+                        sessionStorage.clear();
+                        localStorage.clear();
+                        Swal.fire('Logged out!', 'You have been logged out.', 'success');
+                        setTimeout(() => {
+                            window.location.href = 'login.html';
+                        }, 1000);
+                    },
+                    error: function () {
+                        Swal.fire('Error', 'Logout failed. Try again.', 'error');
+                    }
+                });
+            }
+        });
+    });
 });

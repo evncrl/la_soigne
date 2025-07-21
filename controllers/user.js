@@ -45,7 +45,7 @@ const registerUser = async (req, res) => {
   }
 };
 
-/* ✅ Login User */
+/* ✅ Login User (Generate + Save Token) */
 const loginUser = (req, res) => {
   const { email, password } = req.body;
 
@@ -78,6 +78,16 @@ const loginUser = (req, res) => {
         { expiresIn: '1h' }
       );
 
+      // ✅ Save the token to remember_token column
+      const updateTokenSql = `UPDATE users SET remember_token = ?, updated_at = NOW() WHERE id = ?`;
+      connection.execute(updateTokenSql, [token, user.id], (updateErr) => {
+        if (updateErr) {
+          console.error('❌ Error saving token to DB:', updateErr);
+        } else {
+          console.log(`✅ Token saved for user ID ${user.id}`);
+        }
+      });
+
       delete user.password;
 
       return res.status(200).json({
@@ -90,6 +100,30 @@ const loginUser = (req, res) => {
       console.error('Password comparison error:', bcryptError);
       return res.status(500).json({ success: false, message: 'Error verifying password' });
     }
+  });
+};
+
+/* ✅ Logout User (Remove Token) */
+const logoutUser = (req, res) => {
+  const { userId } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ success: false, message: 'User ID is required' });
+  }
+
+  const sql = `UPDATE users SET remember_token = NULL, updated_at = NOW() WHERE id = ?`;
+
+  connection.execute(sql, [userId], (err, result) => {
+    if (err) {
+      console.error('Logout DB Error:', err);
+      return res.status(500).json({ success: false, message: 'Error logging out' });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    return res.status(200).json({ success: true, message: 'Logout successful' });
   });
 };
 
@@ -272,6 +306,7 @@ const updateUserByAdmin = (req, res) => {
 module.exports = {
   registerUser,
   loginUser,
+  logoutUser, // ✅ added
   updateUser,
   deactivateUser,
   getUserProfile,

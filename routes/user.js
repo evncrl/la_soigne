@@ -1,32 +1,33 @@
 const express = require('express');
 const cors = require('cors');
-const upload = require('../middlewares/upload');  // adjust path accordingly
+const upload = require('../middlewares/upload');
 const router = express.Router();
 
 const {
   registerUser,
   loginUser,
+  logoutUser, // ✅ added
   updateUser,
   getUserProfile,
-  getAllUsers,        
-  updateUserStatus,   
+  getAllUsers,
+  updateUserStatus,
   updateUserRole,
-  updateUserByAdmin    // ✅ NEW combined route for updating role & status
+  updateUserByAdmin
 } = require('../controllers/user');
 
-// ✅ Apply CORS middleware (optional, can be removed if handled globally)
 router.use(cors());
 
 // ✅ User routes
 router.post('/register', registerUser);
 router.post('/login', loginUser);
+router.post('/logout', logoutUser); // ✅ added
 router.get('/customers/:id', getUserProfile);
 router.post('/update-profile', upload.single('image'), updateUser);
 
 // ✅ Admin routes
-router.get('/users', getAllUsers); 
+router.get('/users', getAllUsers);
 router.put('/users/:id/status', updateUserStatus);
 router.put('/users/:id/role', updateUserRole);
-router.put('/users/:id/update', updateUserByAdmin);  // ✅ NEW ROUTE
+router.put('/users/:id/update', updateUserByAdmin);
 
 module.exports = router;
