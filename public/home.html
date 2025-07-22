@@ -122,8 +122,8 @@
                   <h5 class="card-title">${product.name}</h5>
                   <p class="card-text text-muted">${product.description}</p>
                   <p class="font-weight-bold text-primary">₱${product.price}</p>
-                  <button class="btn btn-success btn-block" 
-                    onclick="addToCart(${product.id}, '${product.name}', ${product.price}, '${images[0]}')">
+                  <button class="btn btn-primary"
+                    onclick="addToCart({id: ${product.id}, name: '${product.name}', price: ${product.price}, image: '${product.image}'})">
                     Add to Cart
                   </button>
                 </div>
@@ -134,33 +134,29 @@
       });
     }
 
-    function addToCart(productId, productName, productPrice, productImage) {
+    function addToCart(product) {
+      const userId = localStorage.getItem("userId");
       const cartKey = `cart_${userId}`;
       let cart = JSON.parse(localStorage.getItem(cartKey)) || [];
 
-      const existingItem = cart.find(item => item.id === productId);
+      const existingItem = cart.find(item => item.id === product.id);
+
       if (existingItem) {
         existingItem.quantity += 1;
       } else {
         cart.push({
-          id: productId,
-          name: productName,
-          price: productPrice,
-          image: productImage,
+          id: product.id,      // ✅ use id
+          name: product.name,
+          price: product.price,
+          image: product.image,
           quantity: 1
         });
       }
 
       localStorage.setItem(cartKey, JSON.stringify(cart));
-
-      Swal.fire({
-        icon: "success",
-        title: "Added to Cart!",
-        text: `${productName} has been added to your cart.`,
-        timer: 1500,
-        showConfirmButton: false,
-      });
+      Swal.fire("✅ Added!", "Product added to cart!", "success");
     }
+
   </script>
 </body>
 

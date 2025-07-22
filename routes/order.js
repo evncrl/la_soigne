@@ -1,11 +1,15 @@
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const orderController = require("../controllers/orderController");
+const { createOrder} = require('../controllers/order');
 
-// Place order (Checkout)
-router.post("/orders", orderController.createOrder);
+// ✅ Checkout route (Customer)
+router.post('/checkout', (req, res, next) => {
+  console.log("📥 Checkout route hit");
+  next();
+}, createOrder);
 
-// Get orders of a specific customer
-router.get("/orders/:customer_id", orderController.getCustomerOrders);
+// ✅ Fetch all orders (Admin)
+
+// ✅ Update order status (Admin)
 
 module.exports = router;

@@ -1,5 +1,7 @@
 const API_PRODUCTS = "http://localhost:4000/api/v1/products";
 const API_USERS = "http://localhost:4000/api/v1/users";
+const API_ORDERS = "http://localhost:4000/api/v1/orders";
+
 let isEditMode = false;
 
 /* ------------------- ✅ LOGOUT ------------------- */
@@ -40,10 +42,7 @@ function loadPage(page) {
   } else if (page === "users") {
     loadUsersPage();
   } else if (page === "orders") {
-    $("#main-content").html(`
-      <h2>Manage Orders</h2>
-      <p>Orders table goes here...</p>
-    `);
+    loadOrdersPage();
   } else if (page === "reviews") {
     $("#main-content").html(`
       <h2>Customer Reviews</h2>
@@ -160,6 +159,87 @@ function loadUsersPage() {
         }
       });
     }
+  });
+}
+
+/* ------------------- ✅ ORDERS SECTION (DataTables Version) ------------------- */
+function loadOrdersPage() {
+  $("#main-content").html(`
+    <h2 class="mb-4">Manage Orders</h2>
+    <table id="ordersTable" class="table table-bordered table-striped mt-3" style="width:100%">
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>Customer</th>
+          <th>Date Placed</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+    </table>
+  `);
+
+  const token = localStorage.getItem("token");
+
+  $('#ordersTable').DataTable({
+    destroy: true,
+    ajax: {
+      url: API_ORDERS,
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+      dataSrc: "data"
+    },
+    columns: [
+      { data: "orderinfo_id" },
+      { data: null, render: (data) => `${data.fname} ${data.lname}` },
+      { data: "date_placed", render: data => new Date(data).toLocaleDateString() },
+      {
+        data: "status",
+        render: (data, type, row) => `
+          <select class="form-control form-control-sm order-status" data-id="${row.orderinfo_id}">
+            <option value="Pending" ${data === "Pending" ? "selected" : ""}>Pending</option>
+            <option value="Shipped" ${data === "Shipped" ? "selected" : ""}>Shipped</option>
+            <option value="Delivered" ${data === "Delivered" ? "selected" : ""}>Delivered</option>
+            <option value="Cancelled" ${data === "Cancelled" ? "selected" : ""}>Cancelled</option>
+          </select>
+        `
+      },
+      {
+        data: null,
+        render: (data, type, row) =>
+          `<button class="btn btn-success btn-sm update-order" data-id="${row.orderinfo_id}">Update</button>`
+      }
+    ]
+  });
+
+  // ✅ Update order status
+  $("#ordersTable").on("click", ".update-order", function () {
+    const id = $(this).data("id");
+    const status = $(`.order-status[data-id="${id}"]`).val();
+
+    Swal.fire({
+      title: "Update Order Status?",
+      text: `Set order #${id} to ${status}`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, update"
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: `${API_ORDERS}/${id}/status`,
+          method: "PUT",
+          contentType: "application/json",
+          data: JSON.stringify({ status }),
+          success: () => {
+            Swal.fire("Updated!", "Order status updated successfully.", "success");
+            $("#ordersTable").DataTable().ajax.reload();
+          },
+          error: () => {
+            Swal.fire("Error", "Failed to update order.", "error");
+          }
+        });
+      }
+    });
   });
 }
 

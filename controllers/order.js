@@ -1,49 +1,70 @@
-const connection = require("../config/database");
+const connection = require('../config/database');
 
-// ✅ Place Order (Checkout)
-exports.createOrder = async (req, res) => {
-  const { customer_id, shipping_id, items } = req.body;
-
-  if (!customer_id || !shipping_id || !items || items.length === 0) {
-    return res.status(400).json({
-      success: false,
-      message: "Missing customer_id, shipping_id, or items",
-    });
-  }
-
+const createOrder = async (req, res) => {
   try {
-    // 1. Insert into orderinfo
-    const [orderResult] = await connection
-      .promise()
-      .query(
-        `INSERT INTO orderinfo (customer_id, date_placed, shipping_id, status) 
-         VALUES (?, CURDATE(), ?, 'Pending')`,
-        [customer_id, shipping_id]
-      );
+    const { customer_id, shipping_id, cart } = req.body;
 
-    const orderinfo_id = orderResult.insertId;
+    console.log("📦 Checkout Request:", req.body);
 
-    // 2. Insert items into orderline
-    const orderLines = items.map((item) => [
-      orderinfo_id,
-      item.product_id, // ✅ This matches orderline.product_id
-      item.quantity,
-    ]);
+    if (!customer_id || !shipping_id || !cart || cart.length === 0) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
 
-    await connection
-      .promise()
-      .query(
-        `INSERT INTO orderline (orderinfo_id, product_id, quantity) VALUES ?`,
-        [orderLines]
-      );
+    // ✅ Validate cart items
+    for (let item of cart) {
+      if (!item.id || !item.quantity || item.quantity <= 0) {
+        return res.status(400).json({ success: false, message: "Invalid cart items" });
+      }
+    }
 
-    res.status(200).json({
-      success: true,
-      message: "Order placed successfully",
-      orderinfo_id,
+    const datePlaced = new Date().toISOString().split("T")[0];
+    const status = "Pending";
+
+    const orderInfoQuery = `
+      INSERT INTO orderinfo (customer_id, date_placed, shipping_id, status)
+      VALUES (?, ?, ?, ?)
+    `;
+
+    connection.query(orderInfoQuery, [customer_id, datePlaced, shipping_id, status], (err, result) => {
+      if (err) {
+        console.error("❌ Error creating order:", err);
+        return res.status(500).json({ success: false, message: "Error creating order" });
+      }
+
+      const orderinfo_id = result.insertId;
+      console.log("✅ Order Created with ID:", orderinfo_id);
+
+      // ✅ Map id → product_id (because orderline table column is product_id)
+      const orderLineValues = cart.map(item => [
+        orderinfo_id,
+        item.id,  // <-- use item.id but it goes into product_id column
+        parseInt(item.quantity)
+      ]);
+
+      const orderLineQuery = `
+        INSERT INTO orderline (orderinfo_id, product_id, quantity)
+        VALUES ?
+      `;
+
+      connection.query(orderLineQuery, [orderLineValues], (err2) => {
+        if (err2) {
+          console.error("❌ Error inserting order items:", err2);
+          return res.status(500).json({ success: false, message: "Error inserting order items" });
+        }
+
+        console.log("✅ Order items inserted successfully");
+        return res.json({
+          success: true,
+          message: "Order placed successfully",
+          orderinfo_id
+        });
+      });
     });
-  } catch (err) {
-    console.error("❌ Order Error:", err);
-    res.status(500).json({ success: false, message: "Server Error" });
+
+  } catch (error) {
+    console.error("❌ Server Error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+module.exports = { createOrder };

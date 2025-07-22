@@ -189,13 +189,44 @@
     }
 
     function checkout() {
-      let cart = JSON.parse(localStorage.getItem(cartKey)) || [];
-      if (cart.length === 0) {
-        Swal.fire("Oops!", "Your cart is empty!", "warning");
-        return;
+  let cart = JSON.parse(localStorage.getItem(cartKey)) || [];
+  if (cart.length === 0) {
+    Swal.fire("Oops!", "Your cart is empty!", "warning");
+    return;
+  }
+
+  const shipping_id = 1; // replace with real shipping id if available
+
+  $.ajax({
+    url: "/api/v1/orders/checkout",
+    method: "POST",
+    contentType: "application/json",
+    data: JSON.stringify({
+      customer_id: userId,
+      shipping_id: shipping_id,
+      cart: cart.map(item => ({
+        id: item.id,               // ✅ send id instead of product_id
+        quantity: item.quantity
+      }))
+    }),
+    success: function (res) {
+      if (res.success) {
+        Swal.fire("✅ Success!", "Your order has been placed!", "success");
+        localStorage.removeItem(cartKey);
+        loadCart();
+      } else {
+        Swal.fire("Error", res.message || "Failed to checkout", "error");
       }
-      Swal.fire("✅ Success!", "Proceeding to checkout...", "success");
+    },
+    error: function (xhr) {
+      console.error("Checkout error:", xhr.responseText);
+      Swal.fire("Error", "Something went wrong during checkout", "error");
     }
+  });
+}
+
+
+
 
     $(document).on("change", ".quantity-input", function () {
       updateQuantity($(this).data("index"), $(this).val());

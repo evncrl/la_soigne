@@ -40,6 +40,43 @@ $(document).ready(function () {
         if (!authData) return;
     }
 
+    // ✅ LOGIN HANDLER
+    $("#loginBtn").on('click', function (e) {
+        e.preventDefault();
+
+        const email = $("#loginEmail").val();
+        const password = $("#loginPassword").val();
+
+        if (!email || !password) {
+            Swal.fire({ icon: "error", text: "Please enter email and password" });
+            return;
+        }
+
+        $.ajax({
+            method: "POST",
+            url: `${url}api/v1/login`,
+            data: JSON.stringify({ email, password }),
+            contentType: 'application/json; charset=utf-8',
+            success: function (res) {
+                if (res.success) {
+                    saveLoginData(res.user, res.token);
+
+                    Swal.fire({ icon: "success", text: "Login successful!" })
+                        .then(() => {
+                            if (res.user.role === "Admin") {
+                                window.location.href = "admin-dashboard.html";
+                            } else {
+                                window.location.href = "profile.html";
+                            }
+                        });
+                }
+            },
+            error: function (xhr) {
+                Swal.fire({ icon: "error", text: xhr.responseJSON?.message || "Login failed" });
+            }
+        });
+    });
+
     // ✅ Initialize profile page only on profile.html
     function initializeProfilePage() {
         if (window.location.pathname.includes('profile.html') || $('#profileForm').length > 0) {
@@ -56,15 +93,14 @@ $(document).ready(function () {
 
                 $('#username').text('USER');
 
-                // ✅ ADMIN CHECK BASED ON STORED ROLE
                 if (authData.userRole === 'Admin') {
                     $('body').addClass('is-admin');
                     console.log("✅ Admin logged in");
                 }
 
-                // ✅ Fetch name & profile image (from customer table)
+                // ✅ Fetch name & profile image
                 $.ajax({
-                    url: `${url}api/users/customers/${authData.userId}`,
+                    url: `${url}api/v1/customers/${authData.userId}`,
                     method: 'GET',
                     success: function (res) {
                         if (res.success && res.data) {
@@ -82,10 +118,9 @@ $(document).ready(function () {
                 });
             });
 
-            // ✅ Fetch profile data for form
             function fetchProfileData() {
                 $.ajax({
-                    url: `${url}api/users/customers/${userId}`,
+                    url: `${url}api/v1/customers/${userId}`,
                     method: 'GET',
                     success: function (res) {
                         if (res.success && res.data) {
@@ -107,10 +142,8 @@ $(document).ready(function () {
                 });
             }
 
-            // Load profile data on page load
             fetchProfileData();
 
-            // Preview profile image
             $('#image').on('change', function () {
                 const file = this.files[0];
                 if (file) {
@@ -122,7 +155,6 @@ $(document).ready(function () {
                 }
             });
 
-            // Handle form submission
             $('#profileForm').on('submit', function (e) {
                 e.preventDefault();
                 const formData = new FormData(this);
@@ -287,7 +319,7 @@ $(document).ready(function () {
         });
     });
 
-    // ✅ LOGOUT HANDLER (NEW)
+    // ✅ LOGOUT HANDLER (FIXED URL)
     $('#logoutBtn').on('click', function (e) {
         e.preventDefault();
 
@@ -305,9 +337,10 @@ $(document).ready(function () {
         }).then((result) => {
             if (result.isConfirmed) {
                 $.ajax({
-                    url: `${url}api/users/logout`,
+                    url: `${url}api/v1/logout`,
                     method: 'POST',
-                    headers: { Authorization: `Bearer ${authData.token}` },
+                    data: JSON.stringify({ userId: authData.userId }),
+                    contentType: 'application/json; charset=utf-8',
                     success: function () {
                         sessionStorage.clear();
                         localStorage.clear();
