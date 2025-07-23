@@ -163,6 +163,7 @@ function loadUsersPage() {
 }
 
 /* ------------------- ✅ ORDERS SECTION (DataTables Version) ------------------- */
+/* ------------------- ✅ ORDERS SECTION (Edit First, Then Update) ------------------- */
 function loadOrdersPage() {
   $("#main-content").html(`
     <h2 class="mb-4">Manage Orders</h2>
@@ -196,7 +197,7 @@ function loadOrdersPage() {
       {
         data: "status",
         render: (data, type, row) => `
-          <select class="form-control form-control-sm order-status" data-id="${row.orderinfo_id}">
+          <select class="form-control form-control-sm order-status" data-id="${row.orderinfo_id}" disabled>
             <option value="Pending" ${data === "Pending" ? "selected" : ""}>Pending</option>
             <option value="Shipped" ${data === "Shipped" ? "selected" : ""}>Shipped</option>
             <option value="Delivered" ${data === "Delivered" ? "selected" : ""}>Delivered</option>
@@ -207,41 +208,55 @@ function loadOrdersPage() {
       {
         data: null,
         render: (data, type, row) =>
-          `<button class="btn btn-success btn-sm update-order" data-id="${row.orderinfo_id}">Update</button>`
+          `<button class="btn btn-primary btn-sm edit-order" data-id="${row.orderinfo_id}">Edit</button>`
       }
     ]
   });
 
-  // ✅ Update order status
-  $("#ordersTable").on("click", ".update-order", function () {
+  // ✅ Edit → Enable Dropdown → Save
+  $("#ordersTable").on("click", ".edit-order", function () {
     const id = $(this).data("id");
-    const status = $(`.order-status[data-id="${id}"]`).val();
+    const $btn = $(this);
+    const $status = $(`.order-status[data-id="${id}"]`);
 
-    Swal.fire({
-      title: "Update Order Status?",
-      text: `Set order #${id} to ${status}`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Yes, update"
-    }).then((result) => {
-      if (result.isConfirmed) {
-        $.ajax({
-          url: `${API_ORDERS}/${id}/status`,
-          method: "PUT",
-          contentType: "application/json",
-          data: JSON.stringify({ status }),
-          success: () => {
-            Swal.fire("Updated!", "Order status updated successfully.", "success");
-            $("#ordersTable").DataTable().ajax.reload();
-          },
-          error: () => {
-            Swal.fire("Error", "Failed to update order.", "error");
-          }
-        });
-      }
-    });
+    if ($btn.text() === "Edit") {
+      // 👉 Enable Edit Mode
+      $btn.text("Save").removeClass("btn-primary").addClass("btn-success");
+      $status.prop("disabled", false);
+    } else {
+      const status = $status.val();
+
+      Swal.fire({
+        title: "Update Order Status?",
+        text: `Set order #${id} to ${status}`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Yes, update"
+      }).then((result) => {
+        if (result.isConfirmed) {
+          $.ajax({
+            url: `${API_ORDERS}/${id}/status`,
+            method: "PUT",
+            contentType: "application/json",
+            data: JSON.stringify({ status }),
+            success: () => {
+              Swal.fire("Updated!", "Order status updated successfully.", "success");
+              $("#ordersTable").DataTable().ajax.reload();
+            },
+            error: () => {
+              Swal.fire("Error", "Failed to update order.", "error");
+            }
+          });
+        } else {
+          // 👉 Reset to Edit Mode if Cancelled
+          $status.prop("disabled", true);
+          $btn.text("Edit").removeClass("btn-success").addClass("btn-primary");
+        }
+      });
+    }
   });
 }
+
 
 /* ------------------- ✅ PRODUCTS SECTION (DataTables Version) ------------------- */
 function loadProductsPage() {

@@ -1,15 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const { createOrder} = require('../controllers/order');
+const {
+  createOrder,
+  getAllOrders,
+  updateOrderStatus
+} = require('../controllers/order');
 
-// ✅ Checkout route (Customer)
-router.post('/checkout', (req, res, next) => {
-  console.log("📥 Checkout route hit");
-  next();
-}, createOrder);
+// ✅ Customer Checkout
+router.post('/checkout', createOrder);
 
-// ✅ Fetch all orders (Admin)
+// ✅ Admin: Get All Orders
+router.get('/', getAllOrders);
 
-// ✅ Update order status (Admin)
+// ✅ Admin: Update Order Status
+router.put('/:id/status', updateOrderStatus);
 
 module.exports = router;
