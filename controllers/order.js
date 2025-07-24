@@ -69,10 +69,14 @@ const createOrder = async (req, res) => {
 /* ------------------- ✅ FETCH ALL ORDERS (Admin) ------------------- */
 const getAllOrders = (req, res) => {
   const query = `
-    SELECT o.orderinfo_id, o.date_placed, o.status,
-           c.fname, c.lname
+    SELECT 
+      o.orderinfo_id, 
+      o.date_placed, 
+      o.status,
+      c.fname, 
+      c.lname
     FROM orderinfo o
-    JOIN customer c ON o.customer_id = c.customer_id
+    LEFT JOIN customer c ON o.customer_id = c.customer_id
     ORDER BY o.date_placed DESC
   `;
 
@@ -82,9 +86,10 @@ const getAllOrders = (req, res) => {
       return res.status(500).json({ success: false, message: "Error fetching orders" });
     }
 
-    return res.json({ data: results }); // ✅ DataTables expects {data:[]}
+    return res.json({ data: results });
   });
 };
+
 
 /* ------------------- ✅ UPDATE ORDER STATUS (Admin) ------------------- */
 const updateOrderStatus = (req, res) => {
@@ -119,4 +124,29 @@ const updateOrderStatus = (req, res) => {
   });
 };
 
-module.exports = { createOrder, getAllOrders, updateOrderStatus };
+/* ------------------- ✅ FETCH CUSTOMER ORDERS (Customer "My Orders") ------------------- */
+const getCustomerOrders = (req, res) => {
+  console.log("📌 PARAMS RECEIVED:", req.params);
+
+  const { customer_id } = req.params;
+  console.log("📌 customer_id received:", customer_id);
+
+  const query = `
+    SELECT o.orderinfo_id, o.date_placed, o.date_shipped, o.date_delivered, o.status
+    FROM orderinfo o
+    WHERE o.customer_id = ?
+    ORDER BY o.date_placed DESC
+  `;
+
+  connection.query(query, [customer_id], (err, results) => {
+    if (err) {
+      console.error("❌ Error fetching customer orders:", err);
+      return res.status(500).json({ success: false, message: "Error fetching customer orders" });
+    }
+
+    console.log("✅ RESULTS:", results);
+    return res.json({ success: true, data: results });
+  });
+};
+
+module.exports = { createOrder, getAllOrders, updateOrderStatus, getCustomerOrders };

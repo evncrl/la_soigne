@@ -26,7 +26,6 @@ app.use('/api/v1', productRoutes);
 app.use('/api/v1', userRoutes);
 app.use('/api/v1/cart', cartRoutes);
 app.use('/api/v1/orders', orderRoutes); // ✅ Checkout API
-app.use('/api/v1/orders', require('./routes/order'));
 
 
 // ✅ Default Route

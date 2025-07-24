@@ -183,35 +183,45 @@ function loadOrdersPage() {
   const token = localStorage.getItem("token");
 
   $('#ordersTable').DataTable({
-    destroy: true,
-    ajax: {
-      url: API_ORDERS,
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-      dataSrc: "data"
-    },
-    columns: [
-      { data: "orderinfo_id" },
-      { data: null, render: (data) => `${data.fname} ${data.lname}` },
-      { data: "date_placed", render: data => new Date(data).toLocaleDateString() },
-      {
-        data: "status",
-        render: (data, type, row) => `
-          <select class="form-control form-control-sm order-status" data-id="${row.orderinfo_id}" disabled>
-            <option value="Pending" ${data === "Pending" ? "selected" : ""}>Pending</option>
-            <option value="Shipped" ${data === "Shipped" ? "selected" : ""}>Shipped</option>
-            <option value="Delivered" ${data === "Delivered" ? "selected" : ""}>Delivered</option>
-            <option value="Cancelled" ${data === "Cancelled" ? "selected" : ""}>Cancelled</option>
-          </select>
-        `
-      },
-      {
-        data: null,
-        render: (data, type, row) =>
-          `<button class="btn btn-primary btn-sm edit-order" data-id="${row.orderinfo_id}">Edit</button>`
+  destroy: true,
+  pageLength: 1000, // ✅ Halimbawa: Show up to 1000 rows (or set to all)
+  paging: false,    // ✅ Totally remove pagination
+  ajax: {
+    url: API_ORDERS,
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+    dataSrc: "data"
+  },
+  columns: [
+    { data: "orderinfo_id" },
+    { data: null, render: (data) => `${data.fname} ${data.lname}` },
+    {
+      data: "date_placed",
+      render: (data) => {
+        if (!data) return "";
+        const date = new Date(data);
+        return isNaN(date) ? data.split("T")[0] : date.toLocaleDateString();
       }
-    ]
-  });
+    },
+    {
+      data: "status",
+      render: (data, type, row) => `
+        <select class="form-control form-control-sm order-status" data-id="${row.orderinfo_id}" disabled>
+          <option value="Pending" ${data === "Pending" ? "selected" : ""}>Pending</option>
+          <option value="Shipped" ${data === "Shipped" ? "selected" : ""}>Shipped</option>
+          <option value="Delivered" ${data === "Delivered" ? "selected" : ""}>Delivered</option>
+          <option value="Cancelled" ${data === "Cancelled" ? "selected" : ""}>Cancelled</option>
+        </select>
+      `
+    },
+    {
+      data: null,
+      render: (data, type, row) =>
+        `<button class="btn btn-primary btn-sm edit-order" data-id="${row.orderinfo_id}">Edit</button>`
+    }
+  ]
+});
+
 
   // ✅ Edit → Enable Dropdown → Save
   $("#ordersTable").on("click", ".edit-order", function () {
@@ -220,7 +230,6 @@ function loadOrdersPage() {
     const $status = $(`.order-status[data-id="${id}"]`);
 
     if ($btn.text() === "Edit") {
-      // 👉 Enable Edit Mode
       $btn.text("Save").removeClass("btn-primary").addClass("btn-success");
       $status.prop("disabled", false);
     } else {
@@ -248,7 +257,6 @@ function loadOrdersPage() {
             }
           });
         } else {
-          // 👉 Reset to Edit Mode if Cancelled
           $status.prop("disabled", true);
           $btn.text("Edit").removeClass("btn-success").addClass("btn-primary");
         }

@@ -2,7 +2,7 @@ const connection = require('../config/database');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-/* ✅ Register User */
+/* ✅ Register User (Auto-create Customer Record) */
 const registerUser = async (req, res) => {
   const { fname, lname, password, confirmPassword, email } = req.body;
 
@@ -33,10 +33,27 @@ const registerUser = async (req, res) => {
         return res.status(500).json({ error: 'Database error occurred' });
       }
 
-      return res.status(200).json({
-        success: true,
-        message: 'Registration successful',
-        result
+      const userId = result.insertId; // ✅ newly created user ID
+
+      // ✅ Auto-create customer record (default details)
+      const customerSql = `
+        INSERT INTO customer (title, fname, lname, addressline, town, phone, image_path, user_id)
+        VALUES (?, ?, ?, 'Not Specified', 'Not Specified', '0000000000', NULL, ?)
+      `;
+
+      connection.execute(customerSql, ['Mr.', fname, lname, userId], (custErr) => {
+        if (custErr) {
+          console.error("❌ Auto-create customer failed:", custErr);
+          // Hindi natin i-return error para hindi ma-block yung registration
+        } else {
+          console.log(`✅ Auto-created customer for user ID ${userId}`);
+        }
+
+        return res.status(200).json({
+          success: true,
+          message: 'Registration successful',
+          userId
+        });
       });
     });
   } catch (error) {
@@ -153,7 +170,7 @@ const updateUser = (req, res) => {
 
   let image = null;
   if (req.file) {
-    image = req.file.path.replace(/\\/g, "/");
+    image = req.file.path.replace(/\\/g, "/").replace("public/", "");
   }
 
   const userSql = `
@@ -167,7 +184,7 @@ const updateUser = (req, res) => {
       addressline = VALUES(addressline),
       town = VALUES(town),
       phone = VALUES(phone),
-      image_path = IF(VALUES(image_path) IS NOT NULL, VALUES(image_path), image_path)
+      image_path = IF(VALUES(image_path) IS NOT NULL AND VALUES(image_path) != '', VALUES(image_path), image_path)
   `;
 
   const params = [
@@ -190,7 +207,8 @@ const updateUser = (req, res) => {
     return res.status(200).json({
       success: true,
       message: '✅ Profile updated successfully!',
-      result
+      result,
+      uploadedImage: image || 'No new image uploaded'
     });
   });
 };
@@ -306,7 +324,7 @@ const updateUserByAdmin = (req, res) => {
 module.exports = {
   registerUser,
   loginUser,
-  logoutUser, // ✅ added
+  logoutUser,
   updateUser,
   deactivateUser,
   getUserProfile,

@@ -1,13 +1,11 @@
 $(document).ready(function () {
     const url = 'http://localhost:4000/';
 
-    // ✅ Save login data to storage (helper)
     function saveLoginData(user, token) {
         sessionStorage.setItem('token', token);
         sessionStorage.setItem('userId', user.id);
         sessionStorage.setItem('userRole', user.role);
 
-        // optional: persist in localStorage if "remember me"
         localStorage.setItem('token', token);
         localStorage.setItem('userId', user.id);
         localStorage.setItem('userRole', user.role);
@@ -32,6 +30,46 @@ $(document).ready(function () {
 
         $('#userId').val(userId);
         return { token, userId, userRole };
+    };
+
+    const formatDate = (date) => date ? new Date(date).toISOString().split("T")[0] : '-';
+
+    // ✅ View Order Items (SweetAlert Modal)
+    window.viewOrderDetails = function (orderId) {
+        Swal.fire({
+            title: "Order Details",
+            html: `<p>Loading...</p>`,
+            showConfirmButton: false
+        });
+
+        $.ajax({
+            url: `${url}api/v1/orders/${orderId}/items`,
+            method: 'GET',
+            success: function (res) {
+                if (res.success && res.data.length > 0) {
+                    let itemsHtml = res.data.map(item => `
+                        <p><strong>${item.product_name}</strong> - ${item.quantity} pcs</p>
+                    `).join('');
+
+                    Swal.update({
+                        title: `Order #${orderId}`,
+                        html: itemsHtml,
+                        showConfirmButton: true
+                    });
+                } else {
+                    Swal.update({
+                        html: `<p>No items found for this order.</p>`,
+                        showConfirmButton: true
+                    });
+                }
+            },
+            error: function () {
+                Swal.update({
+                    html: `<p class="text-danger">Error loading order items.</p>`,
+                    showConfirmButton: true
+                });
+            }
+        });
     };
 
     // Immediately block access if not logged in
@@ -356,4 +394,52 @@ $(document).ready(function () {
             }
         });
     });
+
+    // ✅ MY ORDERS - Show customer's orders in a table
+    if (window.location.pathname.includes('orders.html')) {
+        const authData = getToken();
+        if (!authData) return;
+
+        const userId = authData.userId;
+
+        // ✅ Debug here
+        console.log("Logged-in userId:", userId);
+
+        $.ajax({
+            url: `${url}api/v1/orders/customer/${userId}`,
+            method: 'GET',
+            success: function (res) {
+                console.log("Orders API Response:", res); // ✅ dagdag debug din
+                if (res.success) {
+                    let ordersTable = '';
+                    if (res.data.length === 0) {
+                        ordersTable = `<tr><td colspan="5" class="text-center">No orders found.</td></tr>`;
+                    } else {
+                        res.data.forEach(order => {
+                            ordersTable += `
+                            <tr>
+                                <td>${order.orderinfo_id}</td>
+                                <td>${order.date_placed ? new Date(order.date_placed).toISOString().split('T')[0] : '-'}</td>
+                                <td>${order.date_shipped ? new Date(order.date_shipped).toISOString().split('T')[0] : '-'}</td>
+                                <td>${order.date_delivered ? new Date(order.date_delivered).toISOString().split('T')[0] : '-'}</td>
+                                <td>
+                                    <span class="badge badge-${order.status === 'Pending' ? 'warning' :
+                                        order.status === 'Shipped' ? 'info' :
+                                            order.status === 'Delivered' ? 'success' :
+                                                'secondary'}">
+                                        ${order.status}
+                                    </span>
+                                </td>
+                            </tr>`;
+                        });
+                    }
+                    $('#myOrdersTable tbody').html(ordersTable);
+                }
+            },
+            error: function (xhr) {
+                console.error("❌ Error loading orders:", xhr.responseText);
+                $('#myOrdersTable tbody').html(`<tr><td colspan="5" class="text-center text-danger">Error loading orders.</td></tr>`);
+            }
+        });
+    }
 });

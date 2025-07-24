@@ -3,7 +3,8 @@ const router = express.Router();
 const {
   createOrder,
   getAllOrders,
-  updateOrderStatus
+  updateOrderStatus,
+  getCustomerOrders
 } = require('../controllers/order');
 
 // ✅ Customer Checkout
@@ -14,5 +15,8 @@ router.get('/', getAllOrders);
 
 // ✅ Admin: Update Order Status
 router.put('/:id/status', updateOrderStatus);
+
+// ✅ Customer: Get Their Orders ("My Orders")
+router.get('/customer/:customer_id', getCustomerOrders);
 
 module.exports = router;
