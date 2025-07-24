@@ -14,6 +14,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/invoices', express.static(path.join(__dirname, 'public/invoices')));
+
 
 // ✅ Serve uploaded images publicly
 app.use('/images', express.static(path.join(__dirname, 'public/images')));
