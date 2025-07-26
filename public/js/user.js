@@ -395,41 +395,66 @@ $(document).ready(function () {
         });
     });
 
-    // ✅ MY ORDERS - Show customer's orders in a table
+    // ✅ MY ORDERS - Show customer's orders in a table (with Review button)
     if (window.location.pathname.includes('orders.html')) {
         const authData = getToken();
         if (!authData) return;
 
         const userId = authData.userId;
 
-        // ✅ Debug here
-        console.log("Logged-in userId:", userId);
-
         $.ajax({
             url: `${url}api/v1/orders/customer/${userId}`,
             method: 'GET',
             success: function (res) {
-                console.log("Orders API Response:", res); // ✅ dagdag debug din
+                console.log("Orders API Response:", res);
                 if (res.success) {
                     let ordersTable = '';
                     if (res.data.length === 0) {
-                        ordersTable = `<tr><td colspan="5" class="text-center">No orders found.</td></tr>`;
+                        ordersTable = `<tr><td colspan="6" class="text-center">No orders found.</td></tr>`;
                     } else {
+                        // ✅ Loop orders
                         res.data.forEach(order => {
+                            const datePlaced = order.date_placed ? new Date(order.date_placed).toISOString().split('T')[0] : '-';
+                            const dateShipped = order.date_shipped ? new Date(order.date_shipped).toISOString().split('T')[0] : '-';
+                            const dateDelivered = order.date_delivered ? new Date(order.date_delivered).toISOString().split('T')[0] : '-';
+
+                            const badgeClass =
+                                order.status === 'Pending' ? 'warning' :
+                                    order.status === 'Shipped' ? 'info' :
+                                        order.status === 'Delivered' ? 'success' : 'secondary';
+
+                            // ✅ Check if this order is already fully reviewed
+                            let reviewBtn = '-';
+                            if (order.status === 'Delivered') {
+                                reviewBtn = `<button id="reviewBtn-${order.orderinfo_id}" class="btn btn-sm btn-primary" onclick="reviewOrder(${order.orderinfo_id})">Review</button>`;
+
+                                // 🔥 CHECK via API if all products reviewed
+                                $.ajax({
+                                    url: `${url}api/v1/reviews/check/${order.orderinfo_id}/${userId}`,
+                                    method: 'GET',
+                                    success: function (checkRes) {
+                                        if (checkRes.success && checkRes.fullyReviewed) {
+                                            $(`#reviewBtn-${order.orderinfo_id}`)
+                                                .prop('disabled', true)
+                                                .removeClass('btn-primary')
+                                                .addClass('btn-secondary')
+                                                .text('Reviewed');
+                                        }
+                                    },
+                                    error: function () {
+                                        console.warn("⚠️ Could not check review status for order", order.orderinfo_id);
+                                    }
+                                });
+                            }
+
                             ordersTable += `
                             <tr>
                                 <td>${order.orderinfo_id}</td>
-                                <td>${order.date_placed ? new Date(order.date_placed).toISOString().split('T')[0] : '-'}</td>
-                                <td>${order.date_shipped ? new Date(order.date_shipped).toISOString().split('T')[0] : '-'}</td>
-                                <td>${order.date_delivered ? new Date(order.date_delivered).toISOString().split('T')[0] : '-'}</td>
-                                <td>
-                                    <span class="badge badge-${order.status === 'Pending' ? 'warning' :
-                                        order.status === 'Shipped' ? 'info' :
-                                            order.status === 'Delivered' ? 'success' :
-                                                'secondary'}">
-                                        ${order.status}
-                                    </span>
-                                </td>
+                                <td>${datePlaced}</td>
+                                <td>${dateShipped}</td>
+                                <td>${dateDelivered}</td>
+                                <td><span class="badge badge-${badgeClass}">${order.status}</span></td>
+                                <td>${reviewBtn}</td>
                             </tr>`;
                         });
                     }
@@ -438,8 +463,79 @@ $(document).ready(function () {
             },
             error: function (xhr) {
                 console.error("❌ Error loading orders:", xhr.responseText);
-                $('#myOrdersTable tbody').html(`<tr><td colspan="5" class="text-center text-danger">Error loading orders.</td></tr>`);
+                $('#myOrdersTable tbody').html(`<tr><td colspan="6" class="text-center text-danger">Error loading orders.</td></tr>`);
             }
         });
     }
+
+
+    // ✅ Review Modal + API Call
+    window.reviewOrder = function (orderId) {
+        const authData = getToken();
+        if (!authData) return;
+
+        $.ajax({
+            url: `${url}api/v1/orders/${orderId}/items`,
+            method: 'GET',
+            success: function (res) {
+                if (res.success && res.data.length > 0) {
+                    let productOptions = res.data.map(p =>
+                        `<option value="${p.product_id}">${p.product_name}</option>`
+                    ).join('');
+
+                    Swal.fire({
+                        title: 'Write a Review',
+                        html: `
+                        <select id="reviewProduct" class="swal2-input">${productOptions}</select>
+                        <input type="number" id="reviewRating" class="swal2-input" placeholder="Rating (1-5)" min="1" max="5">
+                        <textarea id="reviewText" class="swal2-textarea" placeholder="Write your review..."></textarea>
+                    `,
+                        showCancelButton: true,
+                        confirmButtonText: 'Submit',
+                        preConfirm: () => {
+                            const product_id = $("#reviewProduct").val();
+                            const rating = $("#reviewRating").val();
+                            const review_text = $("#reviewText").val();
+
+                            if (!rating || rating < 1 || rating > 5) {
+                                Swal.showValidationMessage("Rating must be between 1-5");
+                                return false;
+                            }
+                            return { product_id, rating, review_text };
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            const { product_id, rating, review_text } = result.value;
+
+                            $.ajax({
+                                url: `${url}api/v1/reviews`,
+                                method: 'POST',
+                                contentType: 'application/json',
+                                data: JSON.stringify({
+                                    orderinfo_id: orderId,
+                                    customer_id: authData.userId,
+                                    product_id,
+                                    rating,
+                                    review_text
+                                }),
+                                success: function (resp) {
+                                    Swal.fire('✅ Success!', resp.message, 'success');
+                                },
+                                error: function (xhr) {
+                                    Swal.fire('❌ Error', xhr.responseJSON?.message || 'Failed to submit review', 'error');
+                                }
+                            });
+                        }
+                    });
+
+                } else {
+                    Swal.fire("No products found for this order");
+                }
+            },
+            error: function () {
+                Swal.fire("Error fetching order items");
+            }
+        });
+    };
+
 });

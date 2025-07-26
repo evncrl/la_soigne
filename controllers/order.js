@@ -162,8 +162,7 @@ const updateOrderStatus = (req, res) => {
   });
 };
 
-
-/* ------------------- ✅ FETCH CUSTOMER ORDERS (Customer "My Orders") ------------------- */
+/* ------------------- ✅ FETCH CUSTOMER ORDERS ("My Orders") ------------------- */
 const getCustomerOrders = (req, res) => {
   console.log("📌 PARAMS RECEIVED:", req.params);
 
@@ -188,4 +187,37 @@ const getCustomerOrders = (req, res) => {
   });
 };
 
-module.exports = { createOrder, getAllOrders, updateOrderStatus, getCustomerOrders };
+/* ------------------- ✅ FETCH ORDER ITEMS (Customer View Order Details) ------------------- */
+const getOrderItems = (req, res) => {
+  const { orderId } = req.params;
+  console.log("📌 Fetching items for order:", orderId);
+
+  const query = `
+    SELECT 
+      p.id AS product_id,
+      p.name AS product_name, 
+      p.price, 
+      ol.quantity
+    FROM orderline ol
+    JOIN products p ON ol.product_id = p.id
+    WHERE ol.orderinfo_id = ?
+  `;
+
+  connection.query(query, [orderId], (err, results) => {
+    if (err) {
+      console.error("❌ Error fetching order items:", err);  // Dapat ganito
+      return res.status(500).json({ success: false, message: "Error fetching order items" });
+    }
+
+    console.log("✅ Order items fetched:", results);
+    return res.json({ success: true, data: results });
+  });
+};
+
+module.exports = { 
+  createOrder, 
+  getAllOrders, 
+  updateOrderStatus, 
+  getCustomerOrders,
+  getOrderItems  // ✅ bagong export
+};

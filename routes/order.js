@@ -4,7 +4,8 @@ const {
   createOrder,
   getAllOrders,
   updateOrderStatus,
-  getCustomerOrders
+  getCustomerOrders,
+  getOrderItems // ✅ NEW
 } = require('../controllers/order');
 
 // ✅ Customer Checkout
@@ -18,5 +19,8 @@ router.put('/:id/status', updateOrderStatus);
 
 // ✅ Customer: Get Their Orders ("My Orders")
 router.get('/customer/:customer_id', getCustomerOrders);
+
+// ✅ NEW: Get Items of a Specific Order
+router.get('/:orderId/items', getOrderItems);
 
 module.exports = router;
