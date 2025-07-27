@@ -395,7 +395,7 @@ $(document).ready(function () {
         });
     });
 
-    // ✅ MY ORDERS - Show customer's orders in a table (with Review button)
+    /// ✅ MY ORDERS - Show customer's orders in a table (with Review button)
     if (window.location.pathname.includes('orders.html')) {
         const authData = getToken();
         if (!authData) return;
@@ -412,7 +412,6 @@ $(document).ready(function () {
                     if (res.data.length === 0) {
                         ordersTable = `<tr><td colspan="6" class="text-center">No orders found.</td></tr>`;
                     } else {
-                        // ✅ Loop orders
                         res.data.forEach(order => {
                             const datePlaced = order.date_placed ? new Date(order.date_placed).toISOString().split('T')[0] : '-';
                             const dateShipped = order.date_shipped ? new Date(order.date_shipped).toISOString().split('T')[0] : '-';
@@ -423,12 +422,11 @@ $(document).ready(function () {
                                     order.status === 'Shipped' ? 'info' :
                                         order.status === 'Delivered' ? 'success' : 'secondary';
 
-                            // ✅ Check if this order is already fully reviewed
                             let reviewBtn = '-';
                             if (order.status === 'Delivered') {
                                 reviewBtn = `<button id="reviewBtn-${order.orderinfo_id}" class="btn btn-sm btn-primary" onclick="reviewOrder(${order.orderinfo_id})">Review</button>`;
 
-                                // 🔥 CHECK via API if all products reviewed
+                                // ✅ Check if already reviewed
                                 $.ajax({
                                     url: `${url}api/v1/reviews/check/${order.orderinfo_id}/${userId}`,
                                     method: 'GET',
@@ -440,22 +438,19 @@ $(document).ready(function () {
                                                 .addClass('btn-secondary')
                                                 .text('Reviewed');
                                         }
-                                    },
-                                    error: function () {
-                                        console.warn("⚠️ Could not check review status for order", order.orderinfo_id);
                                     }
                                 });
                             }
 
                             ordersTable += `
-                            <tr>
-                                <td>${order.orderinfo_id}</td>
-                                <td>${datePlaced}</td>
-                                <td>${dateShipped}</td>
-                                <td>${dateDelivered}</td>
-                                <td><span class="badge badge-${badgeClass}">${order.status}</span></td>
-                                <td>${reviewBtn}</td>
-                            </tr>`;
+                        <tr>
+                            <td>${order.orderinfo_id}</td>
+                            <td>${datePlaced}</td>
+                            <td>${dateShipped}</td>
+                            <td>${dateDelivered}</td>
+                            <td><span class="badge badge-${badgeClass}">${order.status}</span></td>
+                            <td>${reviewBtn}</td>
+                        </tr>`;
                         });
                     }
                     $('#myOrdersTable tbody').html(ordersTable);
@@ -469,7 +464,7 @@ $(document).ready(function () {
     }
 
 
-    // ✅ Review Modal + API Call
+    // ✅ Review Modal + API Call (⭐ Star Rating)
     window.reviewOrder = function (orderId) {
         const authData = getToken();
         if (!authData) return;
@@ -486,21 +481,63 @@ $(document).ready(function () {
                     Swal.fire({
                         title: 'Write a Review',
                         html: `
-                        <select id="reviewProduct" class="swal2-input">${productOptions}</select>
-                        <input type="number" id="reviewRating" class="swal2-input" placeholder="Rating (1-5)" min="1" max="5">
-                        <textarea id="reviewText" class="swal2-textarea" placeholder="Write your review..."></textarea>
-                    `,
+                    <select id="reviewProduct" class="swal2-input">${productOptions}</select>
+                    <div id="starRating" style="font-size: 1.8rem; color: #ccc; cursor: pointer; margin:10px 0;">
+                        ${[1, 2, 3, 4, 5].map(n => `<i class="star bi bi-star" data-value="${n}"></i>`).join('')}
+                    </div>
+                    <textarea id="reviewText" class="swal2-textarea" placeholder="Write your review..."></textarea>
+                `,
+                        didOpen: () => {
+                            let selectedRating = 0;
+                            const stars = document.querySelectorAll("#starRating .star");
+
+                            stars.forEach(star => {
+                                star.addEventListener("mouseover", function () {
+                                    const val = this.getAttribute("data-value");
+                                    highlightStars(val);
+                                });
+
+                                star.addEventListener("mouseout", function () {
+                                    highlightStars(selectedRating);
+                                });
+
+                                star.addEventListener("click", function () {
+                                    selectedRating = this.getAttribute("data-value");
+                                    highlightStars(selectedRating);
+                                    $("#starRating").attr("data-selected", selectedRating);
+                                });
+                            });
+
+                            function highlightStars(count) {
+                                stars.forEach((s, i) => {
+                                    s.classList.remove("bi-star", "bi-star-fill");
+                                    if (i < count) {
+                                        s.classList.add("bi-star-fill");
+                                        s.style.color = "#f5c518";
+                                    } else {
+                                        s.classList.add("bi-star");
+                                        s.style.color = "#ccc";
+                                    }
+                                });
+                            }
+                        },
                         showCancelButton: true,
                         confirmButtonText: 'Submit',
                         preConfirm: () => {
                             const product_id = $("#reviewProduct").val();
-                            const rating = $("#reviewRating").val();
-                            const review_text = $("#reviewText").val();
+                            const rating = $("#starRating").attr("data-selected");
+                            const review_text = $("#reviewText").val().trim(); // ✅ para walang puro spaces
 
                             if (!rating || rating < 1 || rating > 5) {
-                                Swal.showValidationMessage("Rating must be between 1-5");
+                                Swal.showValidationMessage("Please select a star rating!");
                                 return false;
                             }
+
+                            if (!review_text || review_text.length < 3) {
+                                Swal.showValidationMessage("Please write at least 3 characters for your review.");
+                                return false;
+                            }
+
                             return { product_id, rating, review_text };
                         }
                     }).then((result) => {
@@ -537,5 +574,4 @@ $(document).ready(function () {
             }
         });
     };
-
 });

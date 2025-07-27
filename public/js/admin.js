@@ -1,6 +1,7 @@
 const API_PRODUCTS = "http://localhost:4000/api/v1/products";
 const API_USERS = "http://localhost:4000/api/v1/users";
 const API_ORDERS = "http://localhost:4000/api/v1/orders";
+const API_REVIEWS = "http://localhost:4000/api/v1/reviews/admin/all";
 
 let isEditMode = false;
 
@@ -44,10 +45,7 @@ function loadPage(page) {
   } else if (page === "orders") {
     loadOrdersPage();
   } else if (page === "reviews") {
-    $("#main-content").html(`
-      <h2>Customer Reviews</h2>
-      <p>Reviews list goes here...</p>
-    `);
+    loadReviewsPage();
   } else if (page === "charts") {
     $("#main-content").html(`
       <h2>Charts & Analytics</h2>
@@ -183,29 +181,29 @@ function loadOrdersPage() {
   const token = localStorage.getItem("token");
 
   $('#ordersTable').DataTable({
-  destroy: true,
-  pageLength: 1000, // ✅ Halimbawa: Show up to 1000 rows (or set to all)
-  paging: false,    // ✅ Totally remove pagination
-  ajax: {
-    url: API_ORDERS,
-    method: "GET",
-    headers: { Authorization: `Bearer ${token}` },
-    dataSrc: "data"
-  },
-  columns: [
-    { data: "orderinfo_id" },
-    { data: null, render: (data) => `${data.fname} ${data.lname}` },
-    {
-      data: "date_placed",
-      render: (data) => {
-        if (!data) return "";
-        const date = new Date(data);
-        return isNaN(date) ? data.split("T")[0] : date.toLocaleDateString();
-      }
+    destroy: true,
+    pageLength: 1000, // ✅ Halimbawa: Show up to 1000 rows (or set to all)
+    paging: false,    // ✅ Totally remove pagination
+    ajax: {
+      url: API_ORDERS,
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+      dataSrc: "data"
     },
-    {
-      data: "status",
-      render: (data, type, row) => `
+    columns: [
+      { data: "orderinfo_id" },
+      { data: null, render: (data) => `${data.fname} ${data.lname}` },
+      {
+        data: "date_placed",
+        render: (data) => {
+          if (!data) return "";
+          const date = new Date(data);
+          return isNaN(date) ? data.split("T")[0] : date.toLocaleDateString();
+        }
+      },
+      {
+        data: "status",
+        render: (data, type, row) => `
         <select class="form-control form-control-sm order-status" data-id="${row.orderinfo_id}" disabled>
           <option value="Pending" ${data === "Pending" ? "selected" : ""}>Pending</option>
           <option value="Shipped" ${data === "Shipped" ? "selected" : ""}>Shipped</option>
@@ -213,14 +211,14 @@ function loadOrdersPage() {
           <option value="Cancelled" ${data === "Cancelled" ? "selected" : ""}>Cancelled</option>
         </select>
       `
-    },
-    {
-      data: null,
-      render: (data, type, row) =>
-        `<button class="btn btn-primary btn-sm edit-order" data-id="${row.orderinfo_id}">Edit</button>`
-    }
-  ]
-});
+      },
+      {
+        data: null,
+        render: (data, type, row) =>
+          `<button class="btn btn-primary btn-sm edit-order" data-id="${row.orderinfo_id}">Edit</button>`
+      }
+    ]
+  });
 
 
   // ✅ Edit → Enable Dropdown → Save
@@ -507,5 +505,51 @@ function deleteProduct(id) {
         }
       });
     }
+  });
+}
+
+/* ------------------- ✅ REVIEWS SECTION (DataTables Version) ------------------- */
+  function loadReviewsPage() {
+  $("#main-content").html(`
+    <h2 class="mb-4">Customer Reviews</h2>
+    <table id="reviewsTable" class="table table-bordered table-striped mt-3" style="width:100%">
+      <thead>
+        <tr>
+          <th>Review ID</th>
+          <th>Customer</th>
+          <th>Product</th>
+          <th>Rating</th>
+          <th>Review</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+    </table>
+  `);
+
+  const token = localStorage.getItem("token");
+
+  $('#reviewsTable').DataTable({
+    destroy: true,
+    ajax: {
+      url: API_REVIEWS,
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+      dataSrc: "data"
+    },
+    columns: [
+      { data: "review_id" },
+      { data: null, render: (d) => `${d.customer_fname} ${d.customer_lname}` },
+      { data: "product_name" },
+      { 
+        data: "rating",
+        render: (r) => {
+          const filled = '⭐'.repeat(r);
+          const empty = '☆'.repeat(5 - r);
+          return `<span style="color:gold; font-size:16px;">${filled}${empty}</span>`;
+        }
+      },
+      { data: "review_text", render: (t) => t || "<i>No comment</i>" },
+      { data: "created_at", render: (d) => new Date(d).toLocaleString() }
+    ]
   });
 }

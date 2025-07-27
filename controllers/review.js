@@ -115,4 +115,37 @@ const checkReviewedOrder = (req, res) => {
     });
 };
 
-module.exports = { createReview, getProductReviews, checkReviewedOrder };
+// ✅ GET ALL REVIEWS (Admin Panel)
+const getAllReviewsForAdmin = (req, res) => {
+    const query = `
+        SELECT 
+            r.review_id,
+            r.rating,
+            r.review_text,
+            r.created_at,
+            c.fname AS customer_fname,
+            c.lname AS customer_lname,
+            p.name AS product_name
+        FROM reviews r
+        JOIN customer c ON r.customer_id = c.customer_id
+        JOIN products p ON r.product_id = p.id
+        ORDER BY r.created_at DESC
+    `;
+
+    connection.query(query, (err, results) => {
+        if (err) {
+            console.error("❌ Error fetching all reviews:", err);
+            return res.status(500).json({ success: false, message: "Error fetching all reviews" });
+        }
+
+        return res.json({ success: true, data: results });
+    });
+};
+
+
+module.exports = { 
+    createReview, 
+    getProductReviews, 
+    checkReviewedOrder, 
+    getAllReviewsForAdmin 
+};
