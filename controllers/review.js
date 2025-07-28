@@ -142,10 +142,34 @@ const getAllReviewsForAdmin = (req, res) => {
     });
 };
 
+// DELETE REVIEW (Hard delete)
+const deleteReview = (req, res) => {
+    const { review_id } = req.params;
+
+    const query = `
+        DELETE FROM reviews 
+        WHERE review_id = ?
+    `;
+
+    connection.query(query, [review_id], (err, result) => {
+        if (err) {
+            console.error("❌ Error deleting review:", err);
+            return res.status(500).json({ success: false, message: "Error deleting review" });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: "Review not found" });
+        }
+
+        console.log("🗑️ Review hard deleted:", review_id);
+        return res.json({ success: true, message: "Review deleted successfully" });
+    });
+};
 
 module.exports = { 
     createReview, 
     getProductReviews, 
     checkReviewedOrder, 
-    getAllReviewsForAdmin 
+    getAllReviewsForAdmin, 
+    deleteReview
 };

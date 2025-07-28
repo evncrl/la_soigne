@@ -1,3 +1,4 @@
+const API_BASE_URL = 'http://localhost:4000/api/v1/';
 const API_PRODUCTS = "http://localhost:4000/api/v1/products";
 const API_USERS = "http://localhost:4000/api/v1/users";
 const API_ORDERS = "http://localhost:4000/api/v1/orders";
@@ -509,7 +510,10 @@ function deleteProduct(id) {
 }
 
 /* ------------------- ✅ REVIEWS SECTION (DataTables Version) ------------------- */
-  function loadReviewsPage() {
+function loadReviewsPage() {
+  const API_BASE_URL = 'http://localhost:4000/api/v1/';
+  const API_REVIEWS = `${API_BASE_URL}reviews/admin/all`;
+
   $("#main-content").html(`
     <h2 class="mb-4">Customer Reviews</h2>
     <table id="reviewsTable" class="table table-bordered table-striped mt-3" style="width:100%">
@@ -521,6 +525,7 @@ function deleteProduct(id) {
           <th>Rating</th>
           <th>Review</th>
           <th>Date</th>
+          <th>Action</th>
         </tr>
       </thead>
     </table>
@@ -528,7 +533,8 @@ function deleteProduct(id) {
 
   const token = localStorage.getItem("token");
 
-  $('#reviewsTable').DataTable({
+  // ✅ Load DataTable
+  const reviewsTable = $('#reviewsTable').DataTable({
     destroy: true,
     ajax: {
       url: API_REVIEWS,
@@ -540,7 +546,7 @@ function deleteProduct(id) {
       { data: "review_id" },
       { data: null, render: (d) => `${d.customer_fname} ${d.customer_lname}` },
       { data: "product_name" },
-      { 
+      {
         data: "rating",
         render: (r) => {
           const filled = '⭐'.repeat(r);
@@ -549,7 +555,57 @@ function deleteProduct(id) {
         }
       },
       { data: "review_text", render: (t) => t || "<i>No comment</i>" },
-      { data: "created_at", render: (d) => new Date(d).toLocaleString() }
+      { data: "created_at", render: (d) => new Date(d).toLocaleString() },
+      {
+        data: null,
+        render: (data) => `
+        <button class="btn btn-sm btn-danger delete-review-btn" data-id="${data.review_id}">
+          <i class="bi bi-trash"></i> Delete
+        </button>
+      `
+      }
     ]
+  });
+
+  // ✅ Handle delete review
+  $('#reviewsTable').on('click', '.delete-review-btn', function () {
+    const reviewId = $(this).data('id');
+
+    Swal.fire({
+      title: 'Are you sure?',
+      text: "This review will be permanently deleted.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        $.ajax({
+          url: `${API_BASE_URL}reviews/${reviewId}`,
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          },
+          success: function (res) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Deleted!',
+              text: res.message || 'Review deleted successfully.',
+              timer: 2000,
+              showConfirmButton: false
+            });
+            reviewsTable.ajax.reload(); // ✅ refresh table
+          },
+          error: function (err) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: err.responseJSON?.message || 'Something went wrong.'
+            });
+          }
+        });
+      }
+    });
   });
 }
