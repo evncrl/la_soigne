@@ -123,3 +123,27 @@ exports.deleteProduct = (req, res) => {
     res.json({ success: true, message: 'Product deleted successfully' });
   });
 };
+
+// ✅ SEARCH PRODUCTS by name or description
+exports.searchProducts = (req, res) => {
+  const q = req.query.q; 
+  if (!q) {
+    return res.status(400).json({ success: false, message: 'Missing query parameter' });
+  }
+
+  const sql = `
+    SELECT id, name AS item_name, description 
+    FROM products 
+    WHERE name LIKE ? OR description LIKE ?
+    LIMIT 10
+  `;
+
+  const searchTerm = `%${q}%`;
+  db.query(sql, [searchTerm, searchTerm], (err, results) => {
+    if (err) {
+      console.error('Search Error:', err);
+      return res.status(500).json({ success: false, message: 'Database error' });
+    }
+    res.json({ success: true, data: results });
+  });
+};

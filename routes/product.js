@@ -11,6 +11,8 @@ router.post(
 
 // ✅ READ
 router.get('/products', productController.getAllProducts);
+router.get('/products/search', productController.searchProducts);
+router.get('/search', productController.searchProducts);
 
 // ✅ UPDATE
 router.put(

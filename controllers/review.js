@@ -77,7 +77,7 @@ const getProductReviews = (req, res) => {
         SELECT r.review_id, r.rating, r.review_text, r.created_at, c.fname, c.lname
         FROM reviews r
         JOIN customer c ON r.customer_id = c.customer_id
-        WHERE r.product_id = ? AND r.deleted_at IS NULL
+        WHERE r.product_id = ? 
         ORDER BY r.created_at DESC
     `;
 
