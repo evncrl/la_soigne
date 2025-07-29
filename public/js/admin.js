@@ -48,10 +48,7 @@ function loadPage(page) {
   } else if (page === "reviews") {
     loadReviewsPage();
   } else if (page === "charts") {
-    $("#main-content").html(`
-      <h2>Charts & Analytics</h2>
-      <p>Charts visualization goes here...</p>
-    `);
+    loadChartsPage();
   }
 }
 
