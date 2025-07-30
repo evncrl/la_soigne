@@ -234,7 +234,7 @@ function loadOrdersPage() {
       Swal.fire({
         title: "Update Order Status?",
         text: `Set order #${id} to ${status}`,
-        icon: "warning",
+        icon: "warning",  
         showCancelButton: true,
         confirmButtonText: "Yes, update"
       }).then((result) => {
