@@ -8,6 +8,8 @@ const userRoutes = require('./routes/user');
 const cartRoutes = require('./routes/cart');
 const orderRoutes = require('./routes/order');
 const reviewRoutes = require('./routes/review');
+const authRoutes = require('./routes/auth'); // adjust path if needed
+
 
 const app = express();
 
@@ -15,6 +17,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/api/auth', authRoutes);
+
 
 // ✅ Serve uploaded invoices & images
 app.use('/invoices', express.static(path.join(__dirname, 'public/invoices')));

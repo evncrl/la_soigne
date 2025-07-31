@@ -3,18 +3,91 @@ const API_PRODUCTS = "http://localhost:4000/api/v1/products";
 const API_USERS = "http://localhost:4000/api/v1/users";
 const API_ORDERS = "http://localhost:4000/api/v1/orders";
 const API_REVIEWS = "http://localhost:4000/api/v1/reviews/admin/all";
+const API_AUTH_CHECK = "http://localhost:4000/api/auth/admin-check";
 
 let isEditMode = false;
 
-/* ------------------- ✅ LOGOUT ------------------- */
+/* ------------------- ✅ SIMPLIFIED ADMIN AUTHORIZATION CHECK ------------------- */
+/* ------------------- ✅ IMPROVED ADMIN AUTHORIZATION CHECK ------------------- */
+function checkAdminAuthorization() {
+  const token = localStorage.getItem('token');
+  const userId = localStorage.getItem('userId');
+  
+  // Immediate redirect if no token
+  if (!token || !userId) {
+    showAuthError("Please login to access the admin dashboard");
+    return;
+  }
+
+  // First verify token validity
+  verifyToken(token).then(isValid => {
+    if (!isValid) {
+      showAuthError("Session expired - please login again");
+      return;
+    }
+    
+    // Then verify admin status
+    verifyAdminStatus(token, userId);
+  });
+}
+
+function verifyToken(token) {
+  return new Promise((resolve) => {
+    $.ajax({
+      url: `http://localhost:4000/api/auth/admin-check`,
+      method: "GET",
+      headers: { 'Authorization': `Bearer ${token}` },
+      success: () => resolve(true),
+      error: () => resolve(false)
+    });
+  });
+}
+
+function verifyAdminStatus(token, userId) {
+  $.ajax({
+    url: `${API_USERS}/${userId}`,
+    method: "GET",
+    headers: { 'Authorization': `Bearer ${token}` },
+    success: function(user) {
+      if (user.role === 'Admin') {
+        loadPage("products");
+      } else {
+        showAuthError("Administrator privileges required");
+      }
+    },
+    error: function(xhr) {
+      const errorMessage = xhr.status === 403 
+        ? "Administrator access required" 
+        : "Unable to verify admin status";
+      showAuthError(errorMessage);
+    }
+  });
+}
+/* ------------------- ✅ AUTH ERROR HANDLER ------------------- */
+function showAuthError(message) {
+  Swal.fire({
+    icon: 'error',
+    title: 'Access Denied',
+    text: message,
+    confirmButtonText: 'Go to Login',
+    allowOutsideClick: false
+  }).then(() => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userId');
+    window.location.href = "/login.html";
+  });
+}
+
+/* ------------------- ✅ LOGOUT HANDLER ------------------- */
 $("#logoutBtn").click(() => {
   Swal.fire({
     icon: "warning",
-    title: "Logout?",
+    title: "Logout Confirmation",
     text: "Are you sure you want to log out?",
     showCancelButton: true,
     confirmButtonText: "Yes, Logout",
-    cancelButtonText: "Cancel"
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#d33"
   }).then((result) => {
     if (result.isConfirmed) {
       localStorage.removeItem('token');
@@ -25,20 +98,19 @@ $("#logoutBtn").click(() => {
 });
 
 /* ------------------- ✅ SPA NAVIGATION ------------------- */
-$(".nav-btn").on("click", function () {
+$(".nav-btn").on("click", function() {
   const page = $(this).data("page");
   loadPage(page);
 });
 
-/* ✅ Default Page */
+/* ✅ INITIALIZE ADMIN DASHBOARD */
 $(document).ready(() => {
-  loadPage("products");
+  checkAdminAuthorization();
 });
 
-/* ✅ Load Pages */
+/* ✅ PAGE LOADER */
 function loadPage(page) {
-  $("#main-content").html("<p>Loading...</p>");
-
+  // Your existing page loading logic
   if (page === "products") {
     loadProductsPage();
   } else if (page === "users") {
@@ -180,8 +252,8 @@ function loadOrdersPage() {
 
   $('#ordersTable').DataTable({
     destroy: true,
-    pageLength: 1000, // ✅ Halimbawa: Show up to 1000 rows (or set to all)
-    paging: false,    // ✅ Totally remove pagination
+    pageLength: 1000, 
+    paging: false,    //Totally remove pagination
     ajax: {
       url: API_ORDERS,
       method: "GET",
