@@ -117,6 +117,9 @@ const checkReviewedOrder = (req, res) => {
 
 // ✅ GET ALL REVIEWS (Admin Panel)
 const getAllReviewsForAdmin = (req, res) => {
+    const offset = parseInt(req.query.offset) || 0;
+    const limit = parseInt(req.query.limit) || 10;
+
     const query = `
         SELECT 
             r.review_id,
@@ -130,9 +133,10 @@ const getAllReviewsForAdmin = (req, res) => {
         JOIN customer c ON r.customer_id = c.customer_id
         JOIN products p ON r.product_id = p.id
         ORDER BY r.created_at DESC
+        LIMIT ?, ?
     `;
 
-    connection.query(query, (err, results) => {
+    connection.query(query, [offset, limit], (err, results) => {
         if (err) {
             console.error("❌ Error fetching all reviews:", err);
             return res.status(500).json({ success: false, message: "Error fetching all reviews" });
@@ -141,6 +145,7 @@ const getAllReviewsForAdmin = (req, res) => {
         return res.json({ success: true, data: results });
     });
 };
+
 
 // DELETE REVIEW (Hard delete)
 const deleteReview = (req, res) => {

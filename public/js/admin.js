@@ -3,91 +3,18 @@ const API_PRODUCTS = "http://localhost:4000/api/v1/products";
 const API_USERS = "http://localhost:4000/api/v1/users";
 const API_ORDERS = "http://localhost:4000/api/v1/orders";
 const API_REVIEWS = "http://localhost:4000/api/v1/reviews/admin/all";
-const API_AUTH_CHECK = "http://localhost:4000/api/auth/admin-check";
 
 let isEditMode = false;
 
-/* ------------------- ✅ SIMPLIFIED ADMIN AUTHORIZATION CHECK ------------------- */
-/* ------------------- ✅ IMPROVED ADMIN AUTHORIZATION CHECK ------------------- */
-function checkAdminAuthorization() {
-  const token = localStorage.getItem('token');
-  const userId = localStorage.getItem('userId');
-  
-  // Immediate redirect if no token
-  if (!token || !userId) {
-    showAuthError("Please login to access the admin dashboard");
-    return;
-  }
-
-  // First verify token validity
-  verifyToken(token).then(isValid => {
-    if (!isValid) {
-      showAuthError("Session expired - please login again");
-      return;
-    }
-    
-    // Then verify admin status
-    verifyAdminStatus(token, userId);
-  });
-}
-
-function verifyToken(token) {
-  return new Promise((resolve) => {
-    $.ajax({
-      url: `http://localhost:4000/api/auth/admin-check`,
-      method: "GET",
-      headers: { 'Authorization': `Bearer ${token}` },
-      success: () => resolve(true),
-      error: () => resolve(false)
-    });
-  });
-}
-
-function verifyAdminStatus(token, userId) {
-  $.ajax({
-    url: `${API_USERS}/${userId}`,
-    method: "GET",
-    headers: { 'Authorization': `Bearer ${token}` },
-    success: function(user) {
-      if (user.role === 'Admin') {
-        loadPage("products");
-      } else {
-        showAuthError("Administrator privileges required");
-      }
-    },
-    error: function(xhr) {
-      const errorMessage = xhr.status === 403 
-        ? "Administrator access required" 
-        : "Unable to verify admin status";
-      showAuthError(errorMessage);
-    }
-  });
-}
-/* ------------------- ✅ AUTH ERROR HANDLER ------------------- */
-function showAuthError(message) {
-  Swal.fire({
-    icon: 'error',
-    title: 'Access Denied',
-    text: message,
-    confirmButtonText: 'Go to Login',
-    allowOutsideClick: false
-  }).then(() => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userId');
-    window.location.href = "/login.html";
-  });
-}
-
-/* ------------------- ✅ LOGOUT HANDLER ------------------- */
+/* ------------------- ✅ LOGOUT ------------------- */
 $("#logoutBtn").click(() => {
   Swal.fire({
     icon: "warning",
-    title: "Logout Confirmation",
+    title: "Logout?",
     text: "Are you sure you want to log out?",
     showCancelButton: true,
     confirmButtonText: "Yes, Logout",
-    cancelButtonText: "Cancel",
-    confirmButtonColor: "#d33"
+    cancelButtonText: "Cancel"
   }).then((result) => {
     if (result.isConfirmed) {
       localStorage.removeItem('token');
@@ -98,19 +25,20 @@ $("#logoutBtn").click(() => {
 });
 
 /* ------------------- ✅ SPA NAVIGATION ------------------- */
-$(".nav-btn").on("click", function() {
+$(".nav-btn").on("click", function () {
   const page = $(this).data("page");
   loadPage(page);
 });
 
-/* ✅ INITIALIZE ADMIN DASHBOARD */
+/* ✅ Default Page */
 $(document).ready(() => {
-  checkAdminAuthorization();
+  loadPage("products");
 });
 
-/* ✅ PAGE LOADER */
+/* ✅ Load Pages */
 function loadPage(page) {
-  // Your existing page loading logic
+  $("#main-content").html("<p>Loading...</p>");
+
   if (page === "products") {
     loadProductsPage();
   } else if (page === "users") {
@@ -128,64 +56,98 @@ function loadPage(page) {
 function loadUsersPage() {
   $("#main-content").html(`
     <h2>All Users</h2>
-    <table id="usersTable" class="table table-bordered table-striped mt-3" style="width:100%">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Role</th>
-          <th>Status</th>
-          <th>Created At</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-    </table>
+    <div class="table-responsive">
+      <table class="table table-bordered table-striped mt-3">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Created At</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="usersTableBody"></tbody>
+      </table>
+    </div>
+    <div id="user-loader" class="text-center my-3" style="display:none;">
+      <span>Loading more users...</span>
+    </div>
   `);
 
   const token = localStorage.getItem("token");
+  let page = 1;
+  const limit = 10;
+  let hasMore = true;
+  let isLoading = false;
 
-  $('#usersTable').DataTable({
-    destroy: true,
-    ajax: {
-      url: API_USERS,
+  function loadUsers() {
+    if (!hasMore || isLoading) return;
+    isLoading = true;
+    $("#user-loader").show();
+
+    $.ajax({
+      url: `${API_USERS}?page=${page}&limit=${limit}`,
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
-      dataSrc: "data"
-    },
-    columns: [
-      { data: "id" },
-      { data: "name" },
-      { data: "email" },
-      {
-        data: "role",
-        render: (data, type, row) => `
-          <select class="form-control form-control-sm user-role" data-id="${row.id}" disabled>
-            <option value="User" ${data === "User" ? "selected" : ""}>User</option>
-            <option value="Admin" ${data === "Admin" ? "selected" : ""}>Admin</option>
-          </select>
-        `
+      success: function (res) {
+        res.data.forEach(user => {
+          $("#usersTableBody").append(`
+            <tr>
+              <td>${user.id}</td>
+              <td>${user.name}</td>
+              <td>${user.email}</td>
+              <td>
+                <select class="form-control form-control-sm user-role" data-id="${user.id}" disabled>
+                  <option value="User" ${user.role === "User" ? "selected" : ""}>User</option>
+                  <option value="Admin" ${user.role === "Admin" ? "selected" : ""}>Admin</option>
+                </select>
+              </td>
+              <td>
+                <select class="form-control form-control-sm user-status" data-id="${user.id}" disabled>
+                  <option value="Active" ${user.status === "Active" ? "selected" : ""}>Active</option>
+                  <option value="Deactivated" ${user.status === "Deactivated" ? "selected" : ""}>Deactivated</option>
+                </select>
+              </td>
+              <td>${new Date(user.created_at).toLocaleString()}</td>
+              <td>
+                <button class="btn btn-primary btn-sm edit-user" data-id="${user.id}">Edit</button>
+              </td>
+            </tr>
+          `);
+        });
+
+        hasMore = res.hasMore;
+        page++;
+        isLoading = false;
+        $("#user-loader").hide();
       },
-      {
-        data: "status",
-        render: (data, type, row) => `
-          <select class="form-control form-control-sm user-status" data-id="${row.id}" disabled>
-            <option value="Active" ${data === "Active" ? "selected" : ""}>Active</option>
-            <option value="Deactivated" ${data === "Deactivated" ? "selected" : ""}>Deactivated</option>
-          </select>
-        `
-      },
-      { data: "created_at", render: data => new Date(data).toLocaleString() },
-      {
-        data: null,
-        render: (data, type, row) =>
-          `<button class="btn btn-primary btn-sm edit-user" data-id="${row.id}">Edit</button>`
+      error: function () {
+        $("#user-loader").hide();
+        isLoading = false;
+        Swal.fire("Error", "Failed to load users.", "error");
       }
-    ]
+    });
+  }
+
+  // Initial load
+  loadUsers();
+
+  // Infinite scroll listener
+  $("#main-content").off("scroll").on("scroll", function () {
+    const scrollTop = $(this).scrollTop();
+    const innerHeight = $(this).innerHeight();
+    const scrollHeight = this.scrollHeight;
+
+    if (scrollTop + innerHeight >= scrollHeight - 50) {
+      loadUsers();
+    }
   });
 
-  // ✅ Edit or Save User
-  $("#usersTable").on("click", ".edit-user", function () {
+  // ✅ Edit or Save User (unchanged logic)
+  $("#main-content").off("click", ".edit-user").on("click", ".edit-user", function () {
     const id = $(this).data("id");
     const $btn = $(this);
     const $role = $(`.user-role[data-id="${id}"]`);
@@ -214,28 +176,30 @@ function loadUsersPage() {
             data: JSON.stringify({ role, status }),
             success: () => {
               Swal.fire("Updated!", "User updated successfully.", "success");
-              $("#usersTable").DataTable().ajax.reload();
+              $btn.text("Edit").removeClass("btn-success").addClass("btn-primary");
+              $role.prop("disabled", true);
+              $status.prop("disabled", true);
             },
             error: () => {
               Swal.fire("Error", "Failed to update user.", "error");
             }
           });
         } else {
+          $btn.text("Edit").removeClass("btn-success").addClass("btn-primary");
           $role.prop("disabled", true);
           $status.prop("disabled", true);
-          $btn.text("Edit").removeClass("btn-success").addClass("btn-primary");
         }
       });
     }
   });
 }
 
+
 /* ------------------- ✅ ORDERS SECTION (DataTables Version) ------------------- */
-/* ------------------- ✅ ORDERS SECTION (Edit First, Then Update) ------------------- */
 function loadOrdersPage() {
   $("#main-content").html(`
     <h2 class="mb-4">Manage Orders</h2>
-    <table id="ordersTable" class="table table-bordered table-striped mt-3" style="width:100%">
+    <table class="table table-bordered table-striped mt-3" style="width:100%">
       <thead>
         <tr>
           <th>Order ID</th>
@@ -245,54 +209,83 @@ function loadOrdersPage() {
           <th>Actions</th>
         </tr>
       </thead>
+      <tbody id="ordersBody"></tbody>
     </table>
+    <div id="loading" class="text-center my-3" style="display:none;">Loading more orders...</div>
   `);
 
+  let offset = 0;
+  const limit = 10;
+  let loading = false;
+  let allLoaded = false;
   const token = localStorage.getItem("token");
 
-  $('#ordersTable').DataTable({
-    destroy: true,
-    pageLength: 1000, 
-    paging: false,    //Totally remove pagination
-    ajax: {
-      url: API_ORDERS,
+  function fetchOrders() {
+    if (loading || allLoaded) return;
+    loading = true;
+    $("#loading").show();
+
+    $.ajax({
+      url: `${API_ORDERS}?offset=${offset}&limit=${limit}`,
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
-      dataSrc: "data"
-    },
-    columns: [
-      { data: "orderinfo_id" },
-      { data: null, render: (data) => `${data.fname} ${data.lname}` },
-      {
-        data: "date_placed",
-        render: (data) => {
-          if (!data) return "";
-          const date = new Date(data);
-          return isNaN(date) ? data.split("T")[0] : date.toLocaleDateString();
+      success: (res) => {
+        const orders = res.data;
+        if (orders.length === 0) {
+          allLoaded = true;
+          $("#loading").text("No more orders.");
+          return;
         }
+
+        orders.forEach((order) => {
+          const date = new Date(order.date_placed);
+          const dateStr = isNaN(date) ? order.date_placed.split("T")[0] : date.toLocaleDateString();
+
+          const row = `
+            <tr>
+              <td>${order.orderinfo_id}</td>
+              <td>${order.fname} ${order.lname}</td>
+              <td>${dateStr}</td>
+              <td>
+                <select class="form-control form-control-sm order-status" data-id="${order.orderinfo_id}" disabled>
+                  <option value="Pending" ${order.status === "Pending" ? "selected" : ""}>Pending</option>
+                  <option value="Shipped" ${order.status === "Shipped" ? "selected" : ""}>Shipped</option>
+                  <option value="Delivered" ${order.status === "Delivered" ? "selected" : ""}>Delivered</option>
+                  <option value="Cancelled" ${order.status === "Cancelled" ? "selected" : ""}>Cancelled</option>
+                </select>
+              </td>
+              <td>
+                <button class="btn btn-primary btn-sm edit-order" data-id="${order.orderinfo_id}">Edit</button>
+              </td>
+            </tr>
+          `;
+          $("#ordersBody").append(row);
+        });
+
+        offset += limit;
+        loading = false;
+        $("#loading").hide();
       },
-      {
-        data: "status",
-        render: (data, type, row) => `
-        <select class="form-control form-control-sm order-status" data-id="${row.orderinfo_id}" disabled>
-          <option value="Pending" ${data === "Pending" ? "selected" : ""}>Pending</option>
-          <option value="Shipped" ${data === "Shipped" ? "selected" : ""}>Shipped</option>
-          <option value="Delivered" ${data === "Delivered" ? "selected" : ""}>Delivered</option>
-          <option value="Cancelled" ${data === "Cancelled" ? "selected" : ""}>Cancelled</option>
-        </select>
-      `
-      },
-      {
-        data: null,
-        render: (data, type, row) =>
-          `<button class="btn btn-primary btn-sm edit-order" data-id="${row.orderinfo_id}">Edit</button>`
+      error: () => {
+        loading = false;
+        $("#loading").hide();
+        Swal.fire("Error", "Failed to load orders.", "error");
       }
-    ]
+    });
+  }
+
+  // Initial fetch
+  fetchOrders();
+
+  // Infinite scroll listener
+  $(window).off("scroll").on("scroll", function () {
+    if ($(window).scrollTop() + $(window).height() >= $(document).height() - 100) {
+      fetchOrders();
+    }
   });
 
-
-  // ✅ Edit → Enable Dropdown → Save
-  $("#ordersTable").on("click", ".edit-order", function () {
+  // Edit/Save handler
+  $("#main-content").on("click", ".edit-order", function () {
     const id = $(this).data("id");
     const $btn = $(this);
     const $status = $(`.order-status[data-id="${id}"]`);
@@ -306,7 +299,7 @@ function loadOrdersPage() {
       Swal.fire({
         title: "Update Order Status?",
         text: `Set order #${id} to ${status}`,
-        icon: "warning",  
+        icon: "warning",
         showCancelButton: true,
         confirmButtonText: "Yes, update"
       }).then((result) => {
@@ -316,17 +309,16 @@ function loadOrdersPage() {
             method: "PUT",
             contentType: "application/json",
             data: JSON.stringify({ status }),
+            headers: { Authorization: `Bearer ${token}` },
             success: () => {
-              Swal.fire("Updated!", "Order status updated successfully.", "success");
-              $("#ordersTable").DataTable().ajax.reload();
+              Swal.fire("Updated!", "Order status updated.", "success");
+              $status.prop("disabled", true);
+              $btn.text("Edit").removeClass("btn-success").addClass("btn-primary");
             },
             error: () => {
               Swal.fire("Error", "Failed to update order.", "error");
             }
           });
-        } else {
-          $status.prop("disabled", true);
-          $btn.text("Edit").removeClass("btn-success").addClass("btn-primary");
         }
       });
     }
@@ -334,24 +326,32 @@ function loadOrdersPage() {
 }
 
 
-/* ------------------- ✅ PRODUCTS SECTION (DataTables Version) ------------------- */
+
+/* ------------------- ✅ PRODUCTS SECTION (Infinite Scroll Version) ------------------- */
 function loadProductsPage() {
   $("#main-content").html(`
     <h2 class="mb-4">All Products</h2>
-    <table id="productsTable" class="table table-bordered table-striped mt-3" style="width:100%">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Name</th>
-          <th>Description</th>
-          <th>Price</th>
-          <th>Category</th>
-          <th>Image</th>
-          <th>Created At</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-    </table>
+    <div class="table-responsive">
+      <table class="table table-bordered table-striped mt-3">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Price</th>
+            <th>Category</th>
+            <th>Image</th>
+            <th>Created At</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="productsTableBody"></tbody>
+      </table>
+    </div>
+    <div id="product-loader" class="text-center my-3" style="display:none;">
+      <span>Loading more products...</span>
+    </div>
+
     <button class="btn btn-success mt-3" id="openAddModal" data-toggle="modal" data-target="#productModal">
       + Add Product
     </button>
@@ -410,54 +410,82 @@ function loadProductsPage() {
     </div>
   `);
 
-  loadProductsTable();
+  const token = localStorage.getItem("token");
+  let page = 1;
+  const limit = 10;
+  let hasMore = true;
+  let isLoading = false;
+
+  function loadProducts() {
+    if (!hasMore || isLoading) return;
+    isLoading = true;
+    $("#product-loader").show();
+
+    $.ajax({
+      url: `${API_PRODUCTS}?page=${page}&limit=${limit}`,
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+      success: function (products) {
+        if (products.length < limit) hasMore = false;
+        products.forEach(product => {
+          const imagesHtml = product.image
+            .split(",")
+            .map(img => `<img src="http://localhost:4000/images/${img}" width="40" class="mr-1">`)
+            .join("");
+
+          $("#productsTableBody").append(`
+            <tr>
+              <td>${product.id}</td>
+              <td>${product.name}</td>
+              <td>${product.description}</td>
+              <td>₱${product.price}</td>
+              <td>${product.category}</td>
+              <td>${imagesHtml}</td>
+              <td>${new Date(product.created_at).toLocaleString()}</td>
+              <td>
+                <button class="btn btn-primary btn-sm edit-product"
+                  data-id="${product.id}"
+                  data-name="${product.name}"
+                  data-description="${product.description}"
+                  data-price="${product.price}"
+                  data-category="${product.category}">
+                  Edit
+                </button>
+                <button class="btn btn-danger btn-sm delete-product" data-id="${product.id}">Delete</button>
+              </td>
+            </tr>
+          `);
+        });
+        page++;
+        isLoading = false;
+        $("#product-loader").hide();
+      },
+      error: function () {
+        $("#product-loader").hide();
+        isLoading = false;
+        Swal.fire("Error", "Failed to load products.", "error");
+      }
+    });
+  }
+
+  // Initial load
+  loadProducts();
+
+  // Infinite scroll listener
+  $("#main-content").off("scroll").on("scroll", function () {
+    const scrollTop = $(this).scrollTop();
+    const innerHeight = $(this).innerHeight();
+    const scrollHeight = this.scrollHeight;
+
+    if (scrollTop + innerHeight >= scrollHeight - 50) {
+      loadProducts();
+    }
+  });
+
   initProductEvents();
 }
 
-function loadProductsTable() {
-  const token = localStorage.getItem("token");
-
-  $('#productsTable').DataTable({
-    destroy: true,
-    ajax: {
-      url: API_PRODUCTS,
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-      dataSrc: ""
-    },
-    columns: [
-      { data: "id" },
-      { data: "name" },
-      { data: "description" },
-      { data: "price", render: data => `₱${data}` },
-      { data: "category" },
-      {
-        data: "image",
-        render: (data) =>
-          data
-            .split(",")
-            .map(img => `<img src="http://localhost:4000/images/${img}" width="40" class="mr-1">`)
-            .join("")
-      },
-      { data: "created_at", render: data => new Date(data).toLocaleString() },
-      {
-        data: null,
-        render: (data, type, row) => `
-          <button class="btn btn-primary btn-sm edit-product"
-            data-id="${row.id}"
-            data-name="${row.name}"
-            data-description="${row.description}"
-            data-price="${row.price}"
-            data-category="${row.category}">
-            Edit
-          </button>
-          <button class="btn btn-danger btn-sm delete-product" data-id="${row.id}">Delete</button>
-        `
-      }
-    ]
-  });
-}
-
+/* ------------------- ✅ EVENTS + UTIL ------------------- */
 function initProductEvents() {
   $("#openAddModal").on("click", function () {
     isEditMode = false;
@@ -467,12 +495,12 @@ function initProductEvents() {
     $("#productId").val("");
   });
 
-  $("#productsTable").on("click", ".edit-product", function () {
+  $("#main-content").on("click", ".edit-product", function () {
     const btn = $(this).data();
     editProduct(btn.id, btn.name, btn.description, btn.price, btn.category);
   });
 
-  $("#productsTable").on("click", ".delete-product", function () {
+  $("#main-content").on("click", ".delete-product", function () {
     deleteProduct($(this).data("id"));
   });
 
@@ -510,7 +538,8 @@ function initProductEvents() {
         }).then(() => {
           $("#productForm")[0].reset();
           $("#productModal").modal("hide");
-          $('#productsTable').DataTable().ajax.reload();
+          $("#productsTableBody").empty();
+          resetProductPaginationAndLoad(); // reload all
         });
       },
       error: function (xhr) {
@@ -520,7 +549,16 @@ function initProductEvents() {
   });
 }
 
-/* ------------------- ✅ Product Utility Functions ------------------- */
+// Reset & load again after create/update
+function resetProductPaginationAndLoad() {
+  page = 1;
+  hasMore = true;
+  isLoading = false;
+  $("#productsTableBody").empty();
+  loadProducts();
+}
+
+// Form validation
 function validateFields() {
   let valid = true;
   function showError(id, message) {
@@ -568,7 +606,8 @@ function deleteProduct(id) {
         url: `${API_PRODUCTS}/${id}`,
         success: function () {
           Swal.fire("Deleted!", "Product has been deleted.", "success");
-          $('#productsTable').DataTable().ajax.reload();
+          $("#productsTableBody").empty();
+          resetProductPaginationAndLoad();
         },
         error: function () {
           Swal.fire("Error", "Failed to delete product.", "error");
@@ -578,68 +617,108 @@ function deleteProduct(id) {
   });
 }
 
+
 /* ------------------- ✅ REVIEWS SECTION (DataTables Version) ------------------- */
 function loadReviewsPage() {
   const API_BASE_URL = 'http://localhost:4000/api/v1/';
   const API_REVIEWS = `${API_BASE_URL}reviews/admin/all`;
+  const token = localStorage.getItem("token");
+  let offset = 0;
+  const limit = 10;
+  let isLoading = false;
+  let allLoaded = false;
 
   $("#main-content").html(`
     <h2 class="mb-4">Customer Reviews</h2>
-    <table id="reviewsTable" class="table table-bordered table-striped mt-3" style="width:100%">
-      <thead>
-        <tr>
-          <th>Review ID</th>
-          <th>Customer</th>
-          <th>Product</th>
-          <th>Rating</th>
-          <th>Review</th>
-          <th>Date</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-    </table>
+    <div id="reviewsList" class="table-responsive">
+      <table class="table table-bordered table-striped">
+        <thead>
+          <tr>
+            <th>Review ID</th>
+            <th>Customer</th>
+            <th>Product</th>
+            <th>Rating</th>
+            <th>Review</th>
+            <th>Date</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="reviewsBody"></tbody>
+      </table>
+    </div>
+    <div id="loading" class="text-center my-3" style="display:none;">
+      <div class="spinner-border text-primary" role="status"></div>
+    </div>
+    <div id="endOfReviews" class="text-center text-muted my-3" style="display:none;">
+      <small>No more reviews to load.</small>
+    </div>
   `);
 
-  const token = localStorage.getItem("token");
+  function loadMoreReviews() {
+    if (isLoading || allLoaded) return;
+    isLoading = true;
+    $("#loading").show();
 
-  // ✅ Load DataTable
-  const reviewsTable = $('#reviewsTable').DataTable({
-    destroy: true,
-    ajax: {
-      url: API_REVIEWS,
+    $.ajax({
+      url: `${API_REVIEWS}?offset=${offset}&limit=${limit}`,
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
-      dataSrc: "data"
-    },
-    columns: [
-      { data: "review_id" },
-      { data: null, render: (d) => `${d.customer_fname} ${d.customer_lname}` },
-      { data: "product_name" },
-      {
-        data: "rating",
-        render: (r) => {
-          const filled = '⭐'.repeat(r);
-          const empty = '☆'.repeat(5 - r);
-          return `<span style="color:gold; font-size:16px;">${filled}${empty}</span>`;
+      success: function (res) {
+        const reviews = res.data;
+        if (!reviews.length) {
+          allLoaded = true;
+          $("#endOfReviews").show();
+          return;
         }
+
+        reviews.forEach(r => {
+          const filled = '⭐'.repeat(r.rating);
+          const empty = '☆'.repeat(5 - r.rating);
+          const row = `
+            <tr>
+              <td>${r.review_id}</td>
+              <td>${r.customer_fname} ${r.customer_lname}</td>
+              <td>${r.product_name}</td>
+              <td><span style="color:gold; font-size:16px;">${filled}${empty}</span></td>
+              <td>${r.review_text || "<i>No comment</i>"}</td>
+              <td>${new Date(r.created_at).toLocaleString()}</td>
+              <td>
+                <button class="btn btn-sm btn-danger delete-review-btn" data-id="${r.review_id}">
+                  <i class="bi bi-trash"></i> Delete
+                </button>
+              </td>
+            </tr>
+          `;
+          $("#reviewsBody").append(row);
+        });
+
+        offset += limit;
       },
-      { data: "review_text", render: (t) => t || "<i>No comment</i>" },
-      { data: "created_at", render: (d) => new Date(d).toLocaleString() },
-      {
-        data: null,
-        render: (data) => `
-        <button class="btn btn-sm btn-danger delete-review-btn" data-id="${data.review_id}">
-          <i class="bi bi-trash"></i> Delete
-        </button>
-      `
+      error: function (err) {
+        console.error(err);
+        Swal.fire("Error", err.responseJSON?.message || "Failed to load reviews.", "error");
+      },
+      complete: function () {
+        isLoading = false;
+        $("#loading").hide();
       }
-    ]
+    });
+  }
+
+  // ✅ Initial load
+  loadMoreReviews();
+
+  // ✅ Infinite scroll trigger
+  $('#main-content').off('scroll').on('scroll', function () {
+    const container = $(this);
+    if (container.scrollTop() + container.innerHeight() >= container[0].scrollHeight - 10) {
+      loadMoreReviews();
+    }
   });
 
   // ✅ Handle delete review
-  $('#reviewsTable').on('click', '.delete-review-btn', function () {
+  $('#main-content').off('click', '.delete-review-btn').on('click', '.delete-review-btn', function () {
     const reviewId = $(this).data('id');
-
     Swal.fire({
       title: 'Are you sure?',
       text: "This review will be permanently deleted.",
@@ -654,7 +733,7 @@ function loadReviewsPage() {
           url: `${API_BASE_URL}reviews/${reviewId}`,
           method: 'DELETE',
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('token')}`
+            Authorization: `Bearer ${token}`
           },
           success: function (res) {
             Swal.fire({
@@ -664,7 +743,12 @@ function loadReviewsPage() {
               timer: 2000,
               showConfirmButton: false
             });
-            reviewsTable.ajax.reload(); // ✅ refresh table
+
+            // Optional: Reload all reviews
+            offset = 0;
+            allLoaded = false;
+            $("#reviewsBody").empty();
+            loadMoreReviews();
           },
           error: function (err) {
             Swal.fire({

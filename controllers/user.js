@@ -242,15 +242,42 @@ const deactivateUser = (req, res) => {
 
 /* ✅ Admin - Fetch all users */
 const getAllUsers = (req, res) => {
-  const sql = 'SELECT id, name, email, role, profile_image, status, created_at FROM users';
-  connection.execute(sql, (err, results) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const offset = (page - 1) * limit;
+
+  const paginatedSql = `
+    SELECT id, name, email, role, profile_image, status, created_at
+    FROM users
+    LIMIT ? OFFSET ?
+  `;
+
+  const countSql = `SELECT COUNT(*) AS total FROM users`;
+
+  connection.execute(paginatedSql, [limit, offset], (err, results) => {
     if (err) {
       console.error('Error fetching users:', err);
       return res.status(500).json({ error: 'Database error' });
     }
-    return res.status(200).json({ success: true, data: results });
+
+    connection.execute(countSql, [], (err2, countResult) => {
+      if (err2) {
+        console.error('Error counting users:', err2);
+        return res.status(500).json({ error: 'Count error' });
+      }
+
+      const total = countResult[0].total;
+      const hasMore = offset + results.length < total;
+
+      return res.status(200).json({
+        success: true,
+        data: results,
+        hasMore
+      });
+    });
   });
 };
+
 
 /* ✅ Admin - Update user status */
 const updateUserStatus = (req, res) => {

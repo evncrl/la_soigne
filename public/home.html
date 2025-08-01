@@ -16,8 +16,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.16.1/sweetalert2.min.js"></script>
 
   <!-- Autocomplete -->
-<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
-<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+  <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
 </head>
 
 <body>
@@ -53,6 +53,11 @@
   <script>
     const url = 'http://localhost:4000/';
     let userId;
+
+    let offset = 0;
+    const limit = 9;
+    let isLoading = false;
+    let allLoaded = false;
 
     $(document).ready(function () {
       const token = localStorage.getItem("token");
@@ -99,67 +104,101 @@
 
     function loadProducts() {
       const API_URL = url + "api/v1/products";
-      $("#items").empty();
 
-      $.get(API_URL, function (products) {
-        if (!products || products.length === 0) {
-          $("#items").html('<div class="col-12 text-center"><p>No products available.</p></div>');
-          return;
-        }
+      function fetchMoreProducts() {
+        if (isLoading || allLoaded) return;
+        isLoading = true;
+        $("#loadingProducts").show();
 
-        products.forEach((product) => {
-          const images = product.image ? product.image.split(",").map(img => img.trim()) : ["placeholder.png"];
-          let carouselInner = "";
-          images.forEach((img, index) => {
-            carouselInner += `
-              <div class="carousel-item ${index === 0 ? "active" : ""}">
-                <img src="${url}images/${img}" class="d-block w-100" alt="${product.name}">
-              </div>`;
+        $.get(`${API_URL}?offset=${offset}&limit=${limit}`, function (products) {
+          if (!products || products.length === 0) {
+            allLoaded = true;
+            $("#endOfProducts").show();
+            return;
+          }
+
+          products.forEach((product) => {
+            const images = product.image ? product.image.split(",").map(img => img.trim()) : ["placeholder.png"];
+            let carouselInner = "";
+            images.forEach((img, index) => {
+              carouselInner += `
+            <div class="carousel-item ${index === 0 ? "active" : ""}">
+              <img src="${url}images/${img}" class="d-block w-100" alt="${product.name}">
+            </div>`;
+            });
+
+            const carouselId = `carousel${product.id}`;
+            const carouselHTML = `
+          <div id="${carouselId}" class="carousel slide" data-ride="carousel">
+            <div class="carousel-inner">${carouselInner}</div>
+            ${images.length > 1 ? `
+              <a class="carousel-control-prev" href="#${carouselId}" role="button" data-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+              </a>
+              <a class="carousel-control-next" href="#${carouselId}" role="button" data-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+              </a>` : ""}
+          </div>`;
+
+            $("#items").append(`
+          <div class="col-md-4 mb-4">
+            <div class="card product-card shadow-sm">
+              ${carouselHTML}
+              <div class="card-body">
+                <h5 class="card-title">${product.name}</h5>
+                <p class="card-text text-muted">${product.description}</p>
+                <p class="font-weight-bold text-primary">₱${product.price}</p>
+                <button class="btn btn-info show-details"
+                  data-id="${product.id}"
+                  data-name="${product.name}"
+                  data-description="${product.description}"
+                  data-price="${product.price}"
+                  data-stock="${product.stock}"
+                  data-image='${JSON.stringify(images)}'>
+                  Details
+                </button>
+                <button class="btn btn-primary mt-2"
+                  onclick="addToCart({id: ${product.id}, name: '${product.name}', price: ${product.price}, image: '${product.image}'})">
+                  Add to Cart
+                </button>
+              </div>
+            </div>
+          </div>`);
           });
 
-          const carouselId = `carousel${product.id}`;
-
-          const carouselHTML = `
-            <div id="${carouselId}" class="carousel slide" data-ride="carousel">
-              <div class="carousel-inner">
-                ${carouselInner}
-              </div>
-              ${images.length > 1 ? `
-                <a class="carousel-control-prev" href="#${carouselId}" role="button" data-slide="prev">
-                  <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                </a>
-                <a class="carousel-control-next" href="#${carouselId}" role="button" data-slide="next">
-                  <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                </a>` : ""}
-            </div>`;
-
-          $("#items").append(`
-            <div class="col-md-4 mb-4">
-              <div class="card product-card shadow-sm">
-                ${carouselHTML}
-                <div class="card-body">
-                  <h5 class="card-title">${product.name}</h5>
-                  <p class="card-text text-muted">${product.description}</p>
-                  <p class="font-weight-bold text-primary">₱${product.price}</p>
-                  <button class="btn btn-info show-details"
-                    data-id="${product.id}"
-                    data-name="${product.name}"
-                    data-description="${product.description}"
-                    data-price="${product.price}"
-                    data-stock="${product.stock}"
-                    data-image='${JSON.stringify(images)}'>
-                    Details
-                  </button>
-                  <button class="btn btn-primary mt-2"
-                    onclick="addToCart({id: ${product.id}, name: '${product.name}', price: ${product.price}, image: '${product.image}'})">
-                    Add to Cart
-                  </button>
-                </div>
-              </div>
-            </div>`);
+          offset += limit;
+        }).fail(function () {
+          console.error("Failed to fetch products.");
+        }).always(function () {
+          isLoading = false;
+          $("#loadingProducts").hide();
         });
-      });
+      }
+
+      // ✅ Only run once
+      fetchMoreProducts();
+
+      if (!$("#loadingProducts").length) {
+        $("#items").after(`
+      <div id="loadingProducts" class="text-center my-3" style="display:none;">
+        <div class="spinner-border text-primary" role="status"></div>
+      </div>
+      <div id="endOfProducts" class="text-center text-muted my-3" style="display:none;">
+        <small>No more products to load.</small>
+      </div>
+    `);
+      }
     }
+
+    // ✅ Setup infinite scroll to only call fetchMoreProducts()
+    $(window).off("scroll").on("scroll", function () {
+      if ($(window).scrollTop() + $(window).height() >= $(document).height() - 100) {
+        fetchMoreProducts();  // not loadProducts()
+      }
+    });
+
+
+
 
     function addToCart(product) {
       const cartKey = `cart_${userId}`;
