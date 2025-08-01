@@ -126,7 +126,7 @@
   function logoutUser() {
     const userId = localStorage.getItem('userId');
 
-    // ✅ Huwag i-clear ang cart para ma-retain kahit mag-logout
+    //  Huwag i-clear ang cart para ma-retain kahit mag-logout
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
 
@@ -201,7 +201,7 @@
     });
   });
 
-  // ✅ Function to open product modal (you should already have this in home.js)
+  //  Function to open product modal (you should already have this in home.js)
   function openProductModal(productId) {
     // You can trigger your existing product modal logic here
     // For example:

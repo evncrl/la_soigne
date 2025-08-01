@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const db = require("../config/database");
 
-// ✅ Add product to cart
+//  Add product to cart
 router.post("/", (req, res) => {
   const { user_id, product_id, quantity } = req.body;
 
@@ -19,7 +19,7 @@ router.post("/", (req, res) => {
     }
 
     if (results.length > 0) {
-      // ✅ Update quantity if already exists
+      //  Update quantity if already exists
       const updateQuery = "UPDATE cart SET quantity = quantity + ? WHERE user_id = ? AND product_id = ?";
       db.query(updateQuery, [quantity || 1, user_id, product_id], (err2) => {
         if (err2) {
@@ -29,7 +29,7 @@ router.post("/", (req, res) => {
         res.json({ success: true, message: "Cart updated successfully" });
       });
     } else {
-      // ✅ Insert new product
+      //  Insert new product
       const insertQuery = "INSERT INTO cart (user_id, product_id, quantity) VALUES (?, ?, ?)";
       db.query(insertQuery, [user_id, product_id, quantity || 1], (err3) => {
         if (err3) {
@@ -42,7 +42,7 @@ router.post("/", (req, res) => {
   });
 });
 
-// ✅ Get cart items for a user
+//  Get cart items for a user
 router.get("/:user_id", (req, res) => {
   const { user_id } = req.params;
 

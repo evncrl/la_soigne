@@ -6,7 +6,7 @@ const router = express.Router();
 const {
   registerUser,
   loginUser,
-  logoutUser, // ✅ added
+  logoutUser, 
   updateUser,
   getUserProfile,
   getAllUsers,
@@ -17,14 +17,14 @@ const {
 
 router.use(cors());
 
-// ✅ User routes
+//  User routes
 router.post('/register', registerUser);
 router.post('/login', loginUser);
-router.post('/logout', logoutUser); // ✅ added
+router.post('/logout', logoutUser); 
 router.get('/customers/:id', getUserProfile);
 router.post('/update-profile', upload.single('image'), updateUser);
 
-// ✅ Admin routes
+//  Admin routes
 router.get('/users', getAllUsers);
 router.put('/users/:id/status', updateUserStatus);
 router.put('/users/:id/role', updateUserRole);

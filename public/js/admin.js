@@ -3,18 +3,90 @@ const API_PRODUCTS = "http://localhost:4000/api/v1/products";
 const API_USERS = "http://localhost:4000/api/v1/users";
 const API_ORDERS = "http://localhost:4000/api/v1/orders";
 const API_REVIEWS = "http://localhost:4000/api/v1/reviews/admin/all";
+const API_AUTH_CHECK = "http://localhost:4000/api/auth/admin-check";
 
 let isEditMode = false;
+/* ------------------- IMPROVED ADMIN AUTHORIZATION CHECK ------------------- */
+function checkAdminAuthorization() {
+  const token = localStorage.getItem('token');
+  const userId = localStorage.getItem('userId');
 
-/* ------------------- ✅ LOGOUT ------------------- */
+  // Immediate redirect if no token
+  if (!token || !userId) {
+    showAuthError("Please login to access the admin dashboard");
+    return;
+  }
+
+  // First verify token validity
+  verifyToken(token).then(isValid => {
+    if (!isValid) {
+      showAuthError("Session expired - please login again");
+      return;
+    }
+
+    // Then verify admin status
+    verifyAdminStatus(token, userId);
+  });
+}
+
+function verifyToken(token) {
+  return new Promise((resolve) => {
+    $.ajax({
+      url: `http://localhost:4000/api/auth/admin-check`,
+      method: "GET",
+      headers: { 'Authorization': `Bearer ${token}` },
+      success: () => resolve(true),
+      error: () => resolve(false)
+    });
+  });
+}
+
+function verifyAdminStatus(token, userId) {
+  $.ajax({
+    url: `${API_USERS}/${userId}`,
+    method: "GET",
+    headers: { 'Authorization': `Bearer ${token}` },
+    success: function (user) {
+      if (user.role === 'Admin') {
+        loadPage("products");
+      } else {
+        showAuthError("Administrator privileges required");
+      }
+    },
+    error: function (xhr) {
+      const errorMessage = xhr.status === 403
+        ? "Administrator access required"
+        : "Unable to verify admin status";
+      showAuthError(errorMessage);
+    }
+  });
+}
+/* -------------------  AUTH ERROR HANDLER ------------------- */
+function showAuthError(message) {
+  Swal.fire({
+    icon: 'error',
+    title: 'Access Denied',
+    text: message,
+    confirmButtonText: 'Go to Login',
+    allowOutsideClick: false
+  }).then(() => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userId');
+    window.location.href = "/login.html";
+  });
+}
+
+/* -------------------  LOGOUT ------------------- */
 $("#logoutBtn").click(() => {
   Swal.fire({
     icon: "warning",
     title: "Logout?",
+    title: "Logout Confirmation",
     text: "Are you sure you want to log out?",
     showCancelButton: true,
     confirmButtonText: "Yes, Logout",
-    cancelButtonText: "Cancel"
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#d33"
   }).then((result) => {
     if (result.isConfirmed) {
       localStorage.removeItem('token');
@@ -24,18 +96,22 @@ $("#logoutBtn").click(() => {
   });
 });
 
-/* ------------------- ✅ SPA NAVIGATION ------------------- */
+/* -------------------  SPA NAVIGATION ------------------- */
 $(".nav-btn").on("click", function () {
   const page = $(this).data("page");
   loadPage(page);
 });
 
-/* ✅ Default Page */
+$(document).ready(() => {
+  checkAdminAuthorization();
+});
+
+/*  Default Page */
 $(document).ready(() => {
   loadPage("products");
 });
 
-/* ✅ Load Pages */
+/*  Load Pages */
 function loadPage(page) {
   $("#main-content").html("<p>Loading...</p>");
 
@@ -52,7 +128,7 @@ function loadPage(page) {
   }
 }
 
-/* ------------------- ✅ USERS SECTION (DataTables Version) ------------------- */
+/* -------------------  USERS SECTION (DataTables Version) ------------------- */
 function loadUsersPage() {
   $("#main-content").html(`
     <h2>All Users</h2>
@@ -146,7 +222,7 @@ function loadUsersPage() {
     }
   });
 
-  // ✅ Edit or Save User (unchanged logic)
+  //  Edit or Save User (unchanged logic)
   $("#main-content").off("click", ".edit-user").on("click", ".edit-user", function () {
     const id = $(this).data("id");
     const $btn = $(this);
@@ -195,7 +271,7 @@ function loadUsersPage() {
 }
 
 
-/* ------------------- ✅ ORDERS SECTION (DataTables Version) ------------------- */
+/* -------------------  ORDERS SECTION (DataTables Version) ------------------- */
 function loadOrdersPage() {
   $("#main-content").html(`
     <h2 class="mb-4">Manage Orders</h2>
@@ -327,7 +403,7 @@ function loadOrdersPage() {
 
 
 
-/* ------------------- ✅ PRODUCTS SECTION (Infinite Scroll Version) ------------------- */
+/* -------------------  PRODUCTS SECTION (Infinite Scroll Version) ------------------- */
 function loadProductsPage() {
   $("#main-content").html(`
     <h2 class="mb-4">All Products</h2>
@@ -356,7 +432,7 @@ function loadProductsPage() {
       + Add Product
     </button>
 
-    <!-- ✅ PRODUCT MODAL -->
+    <!--  PRODUCT MODAL -->
     <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -485,7 +561,7 @@ function loadProductsPage() {
   initProductEvents();
 }
 
-/* ------------------- ✅ EVENTS + UTIL ------------------- */
+/* -------------------  EVENTS + UTIL ------------------- */
 function initProductEvents() {
   $("#openAddModal").on("click", function () {
     isEditMode = false;
@@ -618,7 +694,7 @@ function deleteProduct(id) {
 }
 
 
-/* ------------------- ✅ REVIEWS SECTION (DataTables Version) ------------------- */
+/* -------------------  REVIEWS SECTION (DataTables Version) ------------------- */
 function loadReviewsPage() {
   const API_BASE_URL = 'http://localhost:4000/api/v1/';
   const API_REVIEWS = `${API_BASE_URL}reviews/admin/all`;
@@ -705,10 +781,10 @@ function loadReviewsPage() {
     });
   }
 
-  // ✅ Initial load
+  //  Initial load
   loadMoreReviews();
 
-  // ✅ Infinite scroll trigger
+  //  Infinite scroll trigger
   $('#main-content').off('scroll').on('scroll', function () {
     const container = $(this);
     if (container.scrollTop() + container.innerHeight() >= container[0].scrollHeight - 10) {
@@ -716,7 +792,7 @@ function loadReviewsPage() {
     }
   });
 
-  // ✅ Handle delete review
+  //  Handle delete review
   $('#main-content').off('click', '.delete-review-btn').on('click', '.delete-review-btn', function () {
     const reviewId = $(this).data('id');
     Swal.fire({

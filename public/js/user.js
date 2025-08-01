@@ -11,7 +11,7 @@ $(document).ready(function () {
         localStorage.setItem('userRole', user.role);
     }
 
-    // ✅ Check login helper
+    //  Check login helper
     const getToken = () => {
         const token = sessionStorage.getItem('token') || localStorage.getItem('token');
         const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
@@ -34,7 +34,7 @@ $(document).ready(function () {
 
     const formatDate = (date) => date ? new Date(date).toISOString().split("T")[0] : '-';
 
-    // ✅ View Order Items (SweetAlert Modal)
+    //  View Order Items (SweetAlert Modal)
     window.viewOrderDetails = function (orderId) {
         Swal.fire({
             title: "Order Details",
@@ -78,7 +78,7 @@ $(document).ready(function () {
         if (!authData) return;
     }
 
-    // ✅ LOGIN HANDLER
+    //  LOGIN HANDLER
     $("#loginBtn").on('click', function (e) {
         e.preventDefault();
 
@@ -115,7 +115,7 @@ $(document).ready(function () {
         });
     });
 
-    // ✅ Initialize profile page only on profile.html
+    //  Initialize profile page only on profile.html
     function initializeProfilePage() {
         if (window.location.pathname.includes('profile.html') || $('#profileForm').length > 0) {
             const authData = getToken();
@@ -136,7 +136,7 @@ $(document).ready(function () {
                     console.log("✅ Admin logged in");
                 }
 
-                // ✅ Fetch name & profile image
+                //  Fetch name & profile image
                 $.ajax({
                     url: `${url}api/v1/customers/${authData.userId}`,
                     method: 'GET',
@@ -235,7 +235,7 @@ $(document).ready(function () {
 
     initializeProfilePage();
 
-    // ✅ Register handler
+    //  Register handler
     $("#register").on('click', function (e) {
         e.preventDefault();
 
@@ -275,7 +275,7 @@ $(document).ready(function () {
         });
     });
 
-    // ✅ Deactivate handler
+    //  Deactivate handler
     $("#deactivateBtn").on('click', function (e) {
         e.preventDefault();
 
@@ -324,7 +324,7 @@ $(document).ready(function () {
         });
     });
 
-    // ✅ Forgot password
+    //  Forgot password
     $('#forgotPasswordLink').on('click', function (e) {
         e.preventDefault();
         const email = $('#loginEmail').val();
@@ -357,7 +357,7 @@ $(document).ready(function () {
         });
     });
 
-    // ✅ LOGOUT HANDLER (FIXED URL)
+    //  LOGOUT HANDLER (FIXED URL)
     $('#logoutBtn').on('click', function (e) {
         e.preventDefault();
 
@@ -395,7 +395,7 @@ $(document).ready(function () {
         });
     });
 
-    /// ✅ MY ORDERS - Show customer's orders in a table (with Review button)
+    ///  MY ORDERS - Show customer's orders in a table (with Review button)
     if (window.location.pathname.includes('orders.html')) {
         const authData = getToken();
         if (!authData) return;
@@ -426,7 +426,7 @@ $(document).ready(function () {
                             if (order.status === 'Delivered') {
                                 reviewBtn = `<button id="reviewBtn-${order.orderinfo_id}" class="btn btn-sm btn-primary" onclick="reviewOrder(${order.orderinfo_id})">Review</button>`;
 
-                                // ✅ Check if already reviewed
+                                //  Check if already reviewed
                                 $.ajax({
                                     url: `${url}api/v1/reviews/check/${order.orderinfo_id}/${userId}`,
                                     method: 'GET',
@@ -464,7 +464,7 @@ $(document).ready(function () {
     }
 
 
-    // ✅ Review Modal + API Call (⭐ Star Rating)
+    //  Review Modal + API Call (⭐ Star Rating)
     window.reviewOrder = function (orderId) {
         const authData = getToken();
         if (!authData) return;
@@ -526,7 +526,7 @@ $(document).ready(function () {
                         preConfirm: () => {
                             const product_id = $("#reviewProduct").val();
                             const rating = $("#starRating").attr("data-selected");
-                            const review_text = $("#reviewText").val().trim(); // ✅ para walang puro spaces
+                            const review_text = $("#reviewText").val().trim(); //  para walang puro spaces
 
                             if (!rating || rating < 1 || rating > 5) {
                                 Swal.showValidationMessage("Please select a star rating!");

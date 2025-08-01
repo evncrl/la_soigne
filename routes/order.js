@@ -5,22 +5,22 @@ const {
   getAllOrders,
   updateOrderStatus,
   getCustomerOrders,
-  getOrderItems // ✅ NEW
+  getOrderItems //  NEW
 } = require('../controllers/order');
 
-// ✅ Customer Checkout
+//  Customer Checkout
 router.post('/checkout', createOrder);
 
-// ✅ Admin: Get All Orders
+//  Admin: Get All Orders
 router.get('/', getAllOrders);
 
-// ✅ Admin: Update Order Status
+//  Admin: Update Order Status
 router.put('/:id/status', updateOrderStatus);
 
-// ✅ Customer: Get Their Orders ("My Orders")
+//  Customer: Get Their Orders ("My Orders")
 router.get('/customer/:customer_id', getCustomerOrders);
 
-// ✅ NEW: Get Items of a Specific Order
+//  Get Items of a Specific Order
 router.get('/:orderId/items', getOrderItems);
 
 module.exports = router;

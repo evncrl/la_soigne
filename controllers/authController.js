@@ -20,7 +20,7 @@ const login = async (req, res) => {
     user: {
       id: user[0].id,
       email: user[0].email,
-      role: user[0].role // ✅ make sure this is included
+      role: user[0].role 
     }
   });
 };

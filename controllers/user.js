@@ -2,7 +2,7 @@ const connection = require('../config/database');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-/* ✅ Register User (Auto-create Customer Record) */
+/*  Register User (Auto-create Customer Record) */
 const registerUser = async (req, res) => {
   const { fname, lname, password, confirmPassword, email } = req.body;
 
@@ -33,9 +33,9 @@ const registerUser = async (req, res) => {
         return res.status(500).json({ error: 'Database error occurred' });
       }
 
-      const userId = result.insertId; // ✅ newly created user ID
+      const userId = result.insertId; 
 
-      // ✅ Auto-create customer record (default details)
+      //  Auto-create customer record (default details)
       const customerSql = `
         INSERT INTO customer (title, fname, lname, addressline, town, phone, image_path, user_id)
         VALUES (?, ?, ?, 'Not Specified', 'Not Specified', '0000000000', NULL, ?)
@@ -62,7 +62,7 @@ const registerUser = async (req, res) => {
   }
 };
 
-/* ✅ Login User (Generate + Save Token) */
+/*  Login User (Generate + Save Token) */
 const loginUser = (req, res) => {
   const { email, password } = req.body;
 
@@ -95,7 +95,7 @@ const loginUser = (req, res) => {
         { expiresIn: '1h' }
       );
 
-      // ✅ Save the token to remember_token column
+      //  Save the token to remember_token column
       const updateTokenSql = `UPDATE users SET remember_token = ?, updated_at = NOW() WHERE id = ?`;
       connection.execute(updateTokenSql, [token, user.id], (updateErr) => {
         if (updateErr) {
@@ -120,7 +120,7 @@ const loginUser = (req, res) => {
   });
 };
 
-/* ✅ Logout User (Remove Token) */
+/*  Logout User (Remove Token) */
 const logoutUser = (req, res) => {
   const { userId } = req.body;
 
@@ -144,7 +144,7 @@ const logoutUser = (req, res) => {
   });
 };
 
-/* ✅ Get User Profile (Customer Table) */
+/*  Get User Profile (Customer Table) */
 const getUserProfile = (req, res) => {
   const userId = req.params.id;
   const sql = 'SELECT * FROM customer WHERE user_id = ?';
@@ -161,7 +161,7 @@ const getUserProfile = (req, res) => {
   });
 };
 
-/* ✅ Update or Insert Profile */
+/*  Update or Insert Profile */
 const updateUser = (req, res) => {
   console.log("Update Profile Body:", req.body);
   console.log("Uploaded File:", req.file);
@@ -213,7 +213,7 @@ const updateUser = (req, res) => {
   });
 };
 
-/* ✅ Deactivate User */
+/*  Deactivate User */
 const deactivateUser = (req, res) => {
   const { email } = req.body;
   if (!email) {
@@ -240,7 +240,7 @@ const deactivateUser = (req, res) => {
   });
 };
 
-/* ✅ Admin - Fetch all users */
+/*  Admin - Fetch all users */
 const getAllUsers = (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 10;
@@ -279,7 +279,7 @@ const getAllUsers = (req, res) => {
 };
 
 
-/* ✅ Admin - Update user status */
+/*  Admin - Update user status */
 const updateUserStatus = (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
@@ -301,7 +301,7 @@ const updateUserStatus = (req, res) => {
   });
 };
 
-/* ✅ Admin - Update user role */
+/*  Admin - Update user role */
 const updateUserRole = (req, res) => {
   const { id } = req.params;
   const { role } = req.body;
@@ -323,7 +323,7 @@ const updateUserRole = (req, res) => {
   });
 };
 
-/* ✅ Admin - Combined update for role & status */
+/*  Admin - Combined update for role & status */
 const updateUserByAdmin = (req, res) => {
   const { id } = req.params;
   const { role, status } = req.body;

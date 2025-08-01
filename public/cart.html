@@ -27,10 +27,10 @@
 </head>
 
 <body>
-  <!-- ✅ HEADER (DYNAMICALLY LOADED) -->
+  <!--  HEADER (DYNAMICALLY LOADED) -->
   <div id="header"></div>
 
-  <!-- ✅ CART CONTENT -->
+  <!--  CART CONTENT -->
   <div class="container py-5">
     <h2 class="mb-4 text-center">🛒 Your Cart</h2>
 
@@ -64,7 +64,7 @@
     </div>
   </div>
 
-  <!-- ✅ SCRIPTS -->
+  <!--  SCRIPTS -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -78,7 +78,7 @@
       userId = localStorage.getItem('userId');
       cartKey = `cart_${userId}`;
 
-      // ✅ Load header dynamically
+      //  Load header dynamically
       $("#header").load("/header.html", function () {
         const headerHeight = $("#header").outerHeight() || 60;
         $("body").css("padding-top", headerHeight + 20 + "px");
@@ -205,13 +205,13 @@
       customer_id: userId,
       shipping_id: shipping_id,
       cart: cart.map(item => ({
-        id: item.id,               // ✅ send id instead of product_id
+        id: item.id,               //  send id instead of product_id
         quantity: item.quantity
       }))
     }),
     success: function (res) {
       if (res.success) {
-        Swal.fire("✅ Success!", "Your order has been placed!", "success");
+        Swal.fire(" Success!", "Your order has been placed!", "success");
         localStorage.removeItem(cartKey);
         loadCart();
       } else {

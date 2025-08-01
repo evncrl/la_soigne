@@ -16,12 +16,12 @@
       <div class="col-md-8 bg-white p-4 rounded shadow-sm">
         <div class="row">
           
-          <!-- ✅ LEFT SIDE: PROFILE IMAGE + CURRENT INFO -->
+          <!--  LEFT SIDE: PROFILE IMAGE + CURRENT INFO -->
           <div class="col-md-4 text-center">
             <img id="profileImagePreview" src="https://via.placeholder.com/150" class="rounded-circle border mb-3" style="width:130px;height:130px;object-fit:cover;" alt="Profile" />
             <input type="file" class="form-control-file mb-3" name="image" id="image" accept="image/*" />
 
-            <!-- ✅ CURRENT INFO -->
+            <!--  CURRENT INFO -->
             <div class="text-left bg-light p-2 rounded border">
               <h6 class="text-secondary">Current Information</h6>
               <p class="mb-1"><strong>Name:</strong> <span id="infoName">-</span></p>
@@ -31,7 +31,7 @@
             </div>
           </div>
 
-          <!-- ✅ RIGHT SIDE: PROFILE FORM -->
+          <!--  RIGHT SIDE: PROFILE FORM -->
           <div class="col-md-8">
             <h4 class="mb-3 text-primary">My Profile</h4>
             <form id="profileForm" enctype="multipart/form-data">
@@ -136,7 +136,7 @@
                 $('#profileImagePreview').attr('src', `/${d.image_path}`);
               }
 
-              // ✅ Update current info (LEFT SIDE)
+              //  Update current info (LEFT SIDE)
               $('#infoName').text(`${d.title || ''} ${d.fname || ''} ${d.lname || ''}`.trim() || '-');
               $('#infoAddress').text(d.addressline || '-');
               $('#infoTown').text(d.town || '-');

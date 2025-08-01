@@ -3,7 +3,7 @@ const db = require('../config/database');
 const path = require('path');
 const multer = require('multer');
 
-// ✅ Multer configuration (allow multiple images)
+//  Multer configuration (allow multiple images)
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, path.join(__dirname, '../public/images'));
@@ -25,9 +25,9 @@ exports.upload = multer({
       cb(new Error('Only .jpg, .jpeg, .png, .webp files are allowed!'));
     }
   }
-}).array('images', 5); // ✅ up to 5 images
+}).array('images', 5); 
 
-// ✅ CREATE PRODUCT (Multiple Images)
+//  CREATE PRODUCT (Multiple Images)
 exports.createProduct = (req, res) => {
   const { name, description, price, category } = req.body;
 
@@ -39,7 +39,7 @@ exports.createProduct = (req, res) => {
     return res.status(400).json({ error: 'At least one image is required' });
   }
 
-  // ✅ Save all filenames, separated by commas
+  //  Save all filenames, separated by commas
   const images = req.files.map(file => file.filename).join(',');
 
   const query = `
@@ -62,7 +62,7 @@ exports.createProduct = (req, res) => {
   });
 };
 
-// ✅ GET ALL PRODUCTS
+//  GET ALL PRODUCTS
 exports.getAllProducts = (req, res) => {
   const query = 'SELECT * FROM products ORDER BY created_at DESC';
 
@@ -75,7 +75,7 @@ exports.getAllProducts = (req, res) => {
   });
 };
 
-// ✅ UPDATE PRODUCT (with Multiple Images)
+//  UPDATE PRODUCT (with Multiple Images)
 exports.updateProduct = (req, res) => {
   const { id } = req.params;
   const { name, description, price, category } = req.body;
@@ -110,7 +110,7 @@ exports.updateProduct = (req, res) => {
   });
 };
 
-// ✅ DELETE PRODUCT
+//  DELETE PRODUCT
 exports.deleteProduct = (req, res) => {
   const { id } = req.params;
   const query = 'DELETE FROM products WHERE id = ?';
@@ -124,7 +124,7 @@ exports.deleteProduct = (req, res) => {
   });
 };
 
-// ✅ SEARCH PRODUCTS by name or description
+//  SEARCH PRODUCTS by name or description
 exports.searchProducts = (req, res) => {
   const q = req.query.q; 
   if (!q) {

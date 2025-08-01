@@ -1,4 +1,4 @@
-/* ------------------- ✅ CHARTS SECTION ------------------- */
+/* -------------------  CHARTS SECTION ------------------- */
 // Chart instances tracker
 const chartInstances = {};
 
@@ -53,7 +53,7 @@ function destroyAllCharts() {
 function loadChartsData() {
   const token = localStorage.getItem("token");
 
-  // ✅ 1. Orders Status Bar Chart (unchanged)
+  //  1. Orders Status Bar Chart (unchanged)
   $.ajax({
     url: API_ORDERS,
     method: "GET",
@@ -70,7 +70,7 @@ function loadChartsData() {
     }
   });
 
-  // ✅ 2. Monthly Sales Line Chart (unchanged)
+  //  2. Monthly Sales Line Chart (unchanged)
   $.ajax({
     url: `${API_ORDERS}/monthly-sales`,
     method: "GET",
@@ -89,7 +89,7 @@ function loadChartsData() {
     }
   });
 
-  // ✅ 3. UPDATED Product Categories Pie Chart (Dynamic Counting)
+  //  3. UPDATED Product Categories Pie Chart (Dynamic Counting)
   $.ajax({
     url: API_PRODUCTS,
     method: "GET",
@@ -126,7 +126,7 @@ function loadChartsData() {
   });
 }
 
-/* ------------------- ✅ RENDER CHARTS ------------------- */
+/* -------------------  RENDER CHARTS ------------------- */
 function renderBarChart(canvasId, labels, data, title) {
   const ctx = document.getElementById(canvasId);
   

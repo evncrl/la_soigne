@@ -1,6 +1,6 @@
 const connection = require('../config/database');
 
-// ✅ CREATE REVIEW (Customer can review only Delivered orders, 1x per product only)
+//  CREATE REVIEW (Customer can review only Delivered orders, 1x per product only)
 const createReview = (req, res) => {
     const { orderinfo_id, customer_id, product_id, rating, review_text } = req.body;
 
@@ -14,7 +14,7 @@ const createReview = (req, res) => {
         return res.status(400).json({ success: false, message: "Rating must be between 1 and 5" });
     }
 
-    // ✅ Check if order is delivered & belongs to the customer
+    //  Check if order is delivered & belongs to the customer
     const checkQuery = `
         SELECT status FROM orderinfo 
         WHERE orderinfo_id = ? AND customer_id = ? LIMIT 1
@@ -34,7 +34,7 @@ const createReview = (req, res) => {
             return res.status(403).json({ success: false, message: "You can only review delivered orders" });
         }
 
-        // ✅ Check if already reviewed (Prevent duplicate review)
+        //  Check if already reviewed (Prevent duplicate review)
         const alreadyReviewedQuery = `
             SELECT review_id FROM reviews
             WHERE customer_id = ? AND product_id = ? LIMIT 1
@@ -50,7 +50,7 @@ const createReview = (req, res) => {
                 return res.status(400).json({ success: false, message: "You already reviewed this product" });
             }
 
-            // ✅ Insert review
+            //  Insert review
             const insertQuery = `
                 INSERT INTO reviews (orderinfo_id, customer_id, product_id, rating, review_text, created_at, updated_at)
                 VALUES (?, ?, ?, ?, ?, NOW(), NOW())
@@ -69,7 +69,7 @@ const createReview = (req, res) => {
     });
 };
 
-// ✅ GET REVIEWS FOR A PRODUCT (for future charts & displaying reviews)
+//  GET REVIEWS FOR A PRODUCT (for future charts & displaying reviews)
 const getProductReviews = (req, res) => {
     const { product_id } = req.params;
 
@@ -91,7 +91,7 @@ const getProductReviews = (req, res) => {
     });
 };
 
-// ✅ CHECK IF ORDER FULLY REVIEWED (All products in this order already reviewed)
+//  CHECK IF ORDER FULLY REVIEWED (All products in this order already reviewed)
 const checkReviewedOrder = (req, res) => {
     const { orderinfo_id, customer_id } = req.params;
 
@@ -115,7 +115,7 @@ const checkReviewedOrder = (req, res) => {
     });
 };
 
-// ✅ GET ALL REVIEWS (Admin Panel)
+//  GET ALL REVIEWS (Admin Panel)
 const getAllReviewsForAdmin = (req, res) => {
     const offset = parseInt(req.query.offset) || 0;
     const limit = parseInt(req.query.limit) || 10;

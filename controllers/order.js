@@ -1,7 +1,7 @@
 const connection = require('../config/database');
 const { sendStatusUpdateEmail } = require("../utils/mailer");
 
-/* ------------------- ✅ CREATE ORDER (Customer Checkout) ------------------- */
+/* -------------------  CREATE ORDER (Customer Checkout) ------------------- */
 const createOrder = async (req, res) => {
   try {
     const { customer_id, shipping_id, cart } = req.body;
@@ -187,7 +187,7 @@ const getCustomerOrders = (req, res) => {
   });
 };
 
-/* ------------------- ✅ FETCH ORDER ITEMS (Customer View Order Details) ------------------- */
+/* -------------------  FETCH ORDER ITEMS (Customer View Order Details) ------------------- */
 const getOrderItems = (req, res) => {
   const { orderId } = req.params;
   console.log("📌 Fetching items for order:", orderId);
@@ -219,5 +219,5 @@ module.exports = {
   getAllOrders, 
   updateOrderStatus, 
   getCustomerOrders,
-  getOrderItems  // ✅ bagong export
+  getOrderItems  
 };

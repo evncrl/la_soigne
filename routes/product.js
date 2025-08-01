@@ -2,26 +2,26 @@ const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/product');
 
-// ✅ CREATE
+//  CREATE
 router.post(
   '/products',
   productController.upload,
   productController.createProduct
 );
 
-// ✅ READ
+//  READ
 router.get('/products', productController.getAllProducts);
 router.get('/products/search', productController.searchProducts);
 router.get('/search', productController.searchProducts);
 
-// ✅ UPDATE
+//  UPDATE
 router.put(
   '/products/:id',
-  productController.upload,  // ✅ Important for updating image
+  productController.upload,  //  Important for updating image
   productController.updateProduct
 );
 
-// ✅ DELETE
+//  DELETE
 router.delete('/products/:id', productController.deleteProduct);
 
 module.exports = router;
