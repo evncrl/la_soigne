@@ -2,11 +2,11 @@ const connection = require('../config/database');
 
 //  CREATE REVIEW (Customer can review only Delivered orders, 1x per product only)
 const createReview = (req, res) => {
-    const { orderinfo_id, customer_id, product_id, rating, review_text } = req.body;
+    const { orderinfo_id, customer_id: user_id, product_id, rating, review_text } = req.body;
 
     console.log("📝 Review Request:", req.body);
 
-    if (!orderinfo_id || !customer_id || !product_id || !rating) {
+    if (!orderinfo_id || !user_id || !product_id || !rating) {
         return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
@@ -14,56 +14,82 @@ const createReview = (req, res) => {
         return res.status(400).json({ success: false, message: "Rating must be between 1 and 5" });
     }
 
-    //  Check if order is delivered & belongs to the customer
-    const checkQuery = `
-        SELECT status FROM orderinfo 
-        WHERE orderinfo_id = ? AND customer_id = ? LIMIT 1
-    `;
-
-    connection.query(checkQuery, [orderinfo_id, customer_id], (err, results) => {
+    // STEP 1: Kunin ang tamang customer_id gamit ang user_id
+    const getCustomerIdQuery = `SELECT customer_id FROM customer WHERE user_id = ?`;
+    
+    connection.query(getCustomerIdQuery, [user_id], (err, customerResults) => {
         if (err) {
-            console.error("❌ Error checking order:", err);
-            return res.status(500).json({ success: false, message: "Error checking order" });
+            console.error("❌ Error fetching customer ID:", err);
+            return res.status(500).json({ success: false, message: "Error fetching customer information" });
         }
 
-        if (results.length === 0) {
-            return res.status(403).json({ success: false, message: "Order not found or not yours" });
+        if (customerResults.length === 0) {
+            return res.status(404).json({ success: false, message: "Customer not found" });
         }
 
-        if (results[0].status !== "Delivered") {
-            return res.status(403).json({ success: false, message: "You can only review delivered orders" });
-        }
+        const actualCustomerId = customerResults[0].customer_id;
+        console.log("🔑 User ID:", user_id, "-> Customer ID:", actualCustomerId);
 
-        //  Check if already reviewed (Prevent duplicate review)
-        const alreadyReviewedQuery = `
-            SELECT review_id FROM reviews
-            WHERE customer_id = ? AND product_id = ? LIMIT 1
+        // STEP 2: I-verify ang order gamit ang USER_ID (dahil sa orderinfo table)
+        const checkQuery = `
+            SELECT status FROM orderinfo 
+            WHERE orderinfo_id = ? AND customer_id = ? LIMIT 1
         `;
 
-        connection.query(alreadyReviewedQuery, [customer_id, product_id], (err2, existing) => {
-            if (err2) {
-                console.error("❌ Error checking existing review:", err2);
-                return res.status(500).json({ success: false, message: "Error checking existing review" });
+        // Dito, customer_id = user_id pa rin ang gamit
+        connection.query(checkQuery, [orderinfo_id, user_id], (err, results) => {
+            if (err) {
+                console.error("❌ Error checking order:", err);
+                return res.status(500).json({ success: false, message: "Error checking order" });
             }
 
-            if (existing.length > 0) {
-                return res.status(400).json({ success: false, message: "You already reviewed this product" });
+            if (results.length === 0) {
+                return res.status(403).json({ success: false, message: "Order not found or not yours" });
             }
 
-            //  Insert review
-            const insertQuery = `
-                INSERT INTO reviews (orderinfo_id, customer_id, product_id, rating, review_text, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+            if (results[0].status !== "Delivered") {
+                return res.status(403).json({ success: false, message: "You can only review delivered orders" });
+            }
+
+            // STEP 3: I-check kung na-review na gamit ang ACTUAL customer_id
+            const alreadyReviewedQuery = `
+                SELECT review_id FROM reviews
+                WHERE customer_id = ? AND product_id = ? LIMIT 1
             `;
 
-            connection.query(insertQuery, [orderinfo_id, customer_id, product_id, rating, review_text || null], (err3, result) => {
-                if (err3) {
-                    console.error("❌ Error inserting review:", err3);
-                    return res.status(500).json({ success: false, message: "Error submitting review" });
+            connection.query(alreadyReviewedQuery, [actualCustomerId, product_id], (err2, existing) => {
+                if (err2) {
+                    console.error("❌ Error checking existing review:", err2);
+                    return res.status(500).json({ success: false, message: "Error checking existing review" });
                 }
 
-                console.log("✅ Review Saved with ID:", result.insertId);
-                return res.json({ success: true, message: "Review submitted successfully!" });
+                if (existing.length > 0) {
+                    return res.status(400).json({ success: false, message: "You already reviewed this product" });
+                }
+
+                // STEP 4: I-insert ang review gamit ang ACTUAL customer_id
+                const insertQuery = `
+                    INSERT INTO reviews (orderinfo_id, customer_id, product_id, rating, review_text, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+                `;
+
+                connection.query(
+                    insertQuery, 
+                    [orderinfo_id, actualCustomerId, product_id, rating, review_text || null], 
+                    (err3, result) => {
+                        if (err3) {
+                            console.error("❌ Error inserting review:", err3);
+                            return res.status(500).json({ success: false, message: "Error submitting review" });
+                        }
+
+                        console.log("✅ Review Saved with ID:", result.insertId);
+                        return res.json({ 
+                            success: true, 
+                            message: "Review submitted successfully!",
+                            review_id: result.insertId
+                        });
+                    }
+                );
             });
         });
     });

@@ -77,7 +77,7 @@ const getAllOrders = (req, res) => {
       c.fname, 
       c.lname
     FROM orderinfo o
-    LEFT JOIN customer c ON o.customer_id = c.customer_id
+    LEFT JOIN customer c ON o.customer_id = c.user_id
     ORDER BY o.date_placed DESC
   `;
 
@@ -124,7 +124,7 @@ const updateOrderStatus = (req, res) => {
     const emailQuery = `
       SELECT u.email
       FROM orderinfo o
-      JOIN customer c ON o.customer_id = c.customer_id
+      JOIN customer c ON o.customer_id = c.user_id
       JOIN users u ON c.user_id = u.id
       WHERE o.orderinfo_id = ?
     `;
