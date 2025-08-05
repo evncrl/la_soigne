@@ -108,7 +108,7 @@ $(document).ready(() => {
 
 /*  Default Page */
 $(document).ready(() => {
-  loadPage("products");
+  loadPage("charts");
 });
 
 /*  Load Pages */

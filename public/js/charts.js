@@ -9,7 +9,7 @@ function loadChartsPage() {
   // Load new content
   $("#main-content").html(`
     <div class="row">
-      <div class="col-md-6 mb-4">
+      <div class="col-md-11 mb-4">
         <div class="card">
           <div class="card-header bg-primary text-white">
             <h5 class="mb-0">📊 Orders Status (Bar Chart)</h5>
